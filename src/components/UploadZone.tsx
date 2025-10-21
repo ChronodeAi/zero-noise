@@ -20,6 +20,8 @@ export default function UploadZone({
     'image/gif',
     'video/mp4',
     'text/plain',
+    'text/csv',
+    'application/vnd.ms-excel',
   ],
 }: UploadZoneProps) {
   const [uploading, setUploading] = useState(false)
@@ -131,7 +133,7 @@ export default function UploadZone({
           {/* File info */}
           {!uploading && (
             <p className="text-xs text-gray-400">
-              Supported: PDF, Images, Videos, Text • Max {maxFileSize / 1024 / 1024}MB per file
+              Supported: PDF, Images, Videos, Text, CSV • Max {maxFileSize / 1024 / 1024}MB per file
             </p>
           )}
         </div>
