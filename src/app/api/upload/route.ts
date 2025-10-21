@@ -116,12 +116,14 @@ export async function POST(request: NextRequest) {
           data: {
             id: collectionId,
             files: {
-              create: successes.map((file) => ({
-                cid: file.cid!,
-                filename: file.sanitizedFilename || file.filename,
-                size: file.size,
-                mimeType: file.type,
-              })),
+              create: successes
+                .filter((file) => file.cid && file.size && file.type)
+                .map((file) => ({
+                  cid: file.cid!,
+                  filename: file.sanitizedFilename || file.filename,
+                  size: file.size!,
+                  mimeType: file.type!,
+                })),
             },
           },
         })
