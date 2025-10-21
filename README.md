@@ -59,3 +59,4 @@ This includes templates, flows, add-ons, and artifacts for all SDLC phases.
 - `/project:flow-handoff-checklist` - Phase transition validation
 
 For more information, see the [SDLC Complete Framework documentation](/Users/chronode/.local/share/ai-writing-guide/agentic/code/frameworks/sdlc-complete/README.md).
+# Trigger redeploy
