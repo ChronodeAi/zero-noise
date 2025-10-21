@@ -13,11 +13,24 @@ interface FileMetadata {
   uploadedAt: string
 }
 
+interface LinkMetadata {
+  id: string
+  url: string
+  title?: string
+  description?: string
+  imageUrl?: string
+  siteName?: string
+  linkType: string
+  createdAt: string
+}
+
 interface Collection {
   id: string
   createdAt: string
   fileCount: number
+  linkCount: number
   files: FileMetadata[]
+  links: LinkMetadata[]
 }
 
 export default function CollectionPage() {
@@ -90,15 +103,73 @@ export default function CollectionPage() {
             </svg>
             Back to Home
           </a>
-          <h1 className="text-4xl font-bold mb-2">📦 File Collection</h1>
+          <h1 className="text-4xl font-bold mb-2">📦 Collection</h1>
           <p className="text-gray-600">
-            {collection.fileCount} file{collection.fileCount !== 1 ? 's' : ''} • Created {new Date(collection.createdAt).toLocaleString()}
+            {collection.fileCount} file{collection.fileCount !== 1 ? 's' : ''}
+            {collection.linkCount > 0 && ` • ${collection.linkCount} link${collection.linkCount !== 1 ? 's' : ''}`}
+            {' • Created '}{new Date(collection.createdAt).toLocaleString()}
           </p>
         </div>
 
-        {/* Files Grid */}
-        <div className="space-y-3">
-          {collection.files.map((file) => {
+        {/* Links Section */}
+        {collection.links && collection.links.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">🔗 Saved URLs</h2>
+            <div className="space-y-3">
+              {collection.links.map((link) => (
+                <div
+                  key={link.id}
+                  className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 mt-1">
+                      {link.linkType === 'video' && <span className="text-3xl">🎥</span>}
+                      {link.linkType === 'article' && <span className="text-3xl">📄</span>}
+                      {link.linkType === 'social' && <span className="text-3xl">💬</span>}
+                      {link.linkType === 'generic' && <span className="text-3xl">🔗</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold mb-2">
+                        {link.title || 'Untitled'}
+                      </h3>
+                      {link.description && (
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          {link.description}
+                        </p>
+                      )}
+                      {link.siteName && (
+                        <p className="text-sm text-gray-500 mb-2">{link.siteName}</p>
+                      )}
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 underline break-all"
+                      >
+                        {link.url}
+                      </a>
+                    </div>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center text-sm whitespace-nowrap flex-shrink-0"
+                    >
+                      Open →
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Files Section */}
+        {collection.files && collection.files.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-semibold mb-4">📁 Files</h2>
+            <div className="space-y-3">
+              {collection.files.map((file) => {
             const gatewayUrl = getFilebaseGatewayUrl(file.cid)
             const fallbackUrls = getPublicGatewayUrls(file.cid)
 
@@ -163,7 +234,9 @@ export default function CollectionPage() {
               </div>
             )
           })}
-        </div>
+            </div>
+          </div>
+        )}
 
         {/* Collection Info */}
         <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">

@@ -26,6 +26,11 @@ export async function GET(
             uploadedAt: 'asc',
           },
         },
+        links: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
     })
 
@@ -42,6 +47,7 @@ export async function GET(
         id: collection.id,
         createdAt: collection.createdAt,
         fileCount: collection.files.length,
+        linkCount: collection.links?.length || 0,
         files: collection.files.map((file) => ({
           id: file.id,
           cid: file.cid,
@@ -50,6 +56,16 @@ export async function GET(
           mimeType: file.mimeType,
           uploadedAt: file.uploadedAt,
         })),
+        links: collection.links?.map((link) => ({
+          id: link.id,
+          url: link.url,
+          title: link.title,
+          description: link.description,
+          imageUrl: link.imageUrl,
+          siteName: link.siteName,
+          linkType: link.linkType,
+          createdAt: link.createdAt,
+        })) || [],
       },
     })
   } catch (error) {

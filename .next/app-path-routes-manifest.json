@@ -1,7 +1,7 @@
 {
   "/_not-found/page": "/_not-found",
-  "/api/collection/[id]/route": "/api/collection/[id]",
   "/api/scrape-url/route": "/api/scrape-url",
+  "/api/collection/[id]/route": "/api/collection/[id]",
   "/api/upload/route": "/api/upload",
   "/c/[id]/page": "/c/[id]",
   "/page": "/"

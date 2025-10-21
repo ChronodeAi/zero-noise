@@ -10,15 +10,29 @@ interface UploadedFile {
   gatewayUrl?: string
 }
 
+interface UploadedLink {
+  url: string
+  title?: string
+  siteName?: string
+  linkType: string
+}
+
 export default function Home() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
+  const [uploadedLinks, setUploadedLinks] = useState<UploadedLink[]>([])
+  const [urls, setUrls] = useState('')
   const [collectionId, setCollectionId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
   const handleFilesSelected = async (files: File[]) => {
-    // Story 3: Call /api/upload with server-side validation
+    // Story 3: Call /api/upload with server-side validation + URLs
     const formData = new FormData()
     files.forEach((file) => formData.append('file', file))
+    
+    // Add URLs if present
+    if (urls.trim()) {
+      formData.append('urls', urls)
+    }
 
     const response = await fetch('/api/upload', {
       method: 'POST',
@@ -31,7 +45,7 @@ export default function Home() {
       throw new Error(data.error || 'Upload failed')
     }
 
-    // Store successful uploads with CIDs and gateway URLs
+    // Store successful file uploads
     const successfulUploads = data.results
       .filter((r: any) => r.success)
       .map((r: any) => ({
@@ -43,10 +57,18 @@ export default function Home() {
 
     setUploadedFiles((prev) => [...prev, ...successfulUploads])
     
+    // Store scraped URLs
+    if (data.urls && data.urls.length > 0) {
+      setUploadedLinks(data.urls)
+    }
+    
     // Store collection ID if present
     if (data.collectionId) {
       setCollectionId(data.collectionId)
     }
+    
+    // Clear URL input
+    setUrls('')
   }
 
   const copyCollectionUrl = async () => {
@@ -78,6 +100,26 @@ export default function Home() {
         {/* Upload Zone */}
         <div className="mb-8">
           <UploadZone onFilesSelected={handleFilesSelected} />
+        </div>
+
+        {/* URL Input */}
+        <div className="mb-8 bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <h2 className="text-xl font-semibold mb-3">🔗 Or Add URLs</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Paste YouTube, article, or social media URLs (one per line)
+          </p>
+          <textarea
+            value={urls}
+            onChange={(e) => setUrls(e.target.value)}
+            placeholder="https://youtube.com/watch?v=...
+https://medium.com/article/...
+https://twitter.com/user/status/..."
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            rows={5}
+          />
+          <p className="text-xs text-gray-500 mt-2">
+            URLs will be saved alongside your files in the collection
+          </p>
         </div>
 
         {/* Collection URL */}
@@ -115,6 +157,54 @@ export default function Home() {
             <p className="text-sm text-gray-500 mt-3">
               Share this URL with anyone to let them view and download your uploaded files
             </p>
+          </div>
+        )}
+
+        {/* Uploaded Links List */}
+        {uploadedLinks.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-2xl font-semibold mb-4">Saved URLs</h2>
+            <div className="space-y-2">
+              {uploadedLinks.map((link, index) => (
+                <div
+                  key={index}
+                  className="p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-1">
+                      {link.linkType === 'video' && (
+                        <span className="text-2xl">🎥</span>
+                      )}
+                      {link.linkType === 'article' && (
+                        <span className="text-2xl">📄</span>
+                      )}
+                      {link.linkType === 'social' && (
+                        <span className="text-2xl">💬</span>
+                      )}
+                      {link.linkType === 'generic' && (
+                        <span className="text-2xl">🔗</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold mb-1">
+                        {link.title || 'Untitled'}
+                      </h3>
+                      {link.siteName && (
+                        <p className="text-sm text-gray-500 mb-2">{link.siteName}</p>
+                      )}
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 underline break-all"
+                      >
+                        {link.url}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
