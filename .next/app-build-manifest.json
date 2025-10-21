@@ -20,21 +20,28 @@
       "static/chunks/4bd1b696-c023c6e3521b1417.js",
       "static/chunks/255-cf2e1d3491ac955b.js",
       "static/chunks/main-app-7a7d59f78557b3a9.js",
-      "static/chunks/app/api/scrape-url/route-8143e0bb048c9dfa.js"
+      "static/chunks/app/api/scrape-url/route-5425c28d8a6fa745.js"
+    ],
+    "/api/search/route": [
+      "static/chunks/webpack-4e6bf084ac60582b.js",
+      "static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "static/chunks/255-cf2e1d3491ac955b.js",
+      "static/chunks/main-app-7a7d59f78557b3a9.js",
+      "static/chunks/app/api/search/route-5425c28d8a6fa745.js"
     ],
     "/api/collection/[id]/route": [
       "static/chunks/webpack-4e6bf084ac60582b.js",
       "static/chunks/4bd1b696-c023c6e3521b1417.js",
       "static/chunks/255-cf2e1d3491ac955b.js",
       "static/chunks/main-app-7a7d59f78557b3a9.js",
-      "static/chunks/app/api/collection/[id]/route-8143e0bb048c9dfa.js"
+      "static/chunks/app/api/collection/[id]/route-5425c28d8a6fa745.js"
     ],
     "/api/upload/route": [
       "static/chunks/webpack-4e6bf084ac60582b.js",
       "static/chunks/4bd1b696-c023c6e3521b1417.js",
       "static/chunks/255-cf2e1d3491ac955b.js",
       "static/chunks/main-app-7a7d59f78557b3a9.js",
-      "static/chunks/app/api/upload/route-8143e0bb048c9dfa.js"
+      "static/chunks/app/api/upload/route-5425c28d8a6fa745.js"
     ],
     "/c/[id]/page": [
       "static/chunks/webpack-4e6bf084ac60582b.js",

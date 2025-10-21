@@ -21,14 +21,20 @@ model Collection {
 }
 
 model File {
-  id           String     @id @default(uuid())
-  cid          String     @unique
+  id           String                        @id @default(uuid())
+  cid          String                        @unique
   filename     String
   size         Int
   mimeType     String
-  uploadedAt   DateTime   @default(now())
+  uploadedAt   DateTime                      @default(now())
   collectionId String
-  collection   Collection @relation(fields: [collectionId], references: [id])
+  collection   Collection                    @relation(fields: [collectionId], references: [id])
+  
+  // Semantic search fields
+  textContent  String?                       @db.Text
+  embedding    Unsupported("vector(1536)")?
+  indexed      Boolean                       @default(false)
+  indexedAt    DateTime?
   
   @@index([collectionId])
   @@index([cid])
