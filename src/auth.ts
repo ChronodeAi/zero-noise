@@ -21,31 +21,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
-      const existingUser = await prisma.user.findUnique({
-        where: { email: user.email! }
-      })
-      
-      // Existing user - check whitelist
-      if (existingUser) {
-        if (!existingUser.isWhitelisted) {
-          return false
-        }
-        
-        // Update last login
-        await prisma.user.update({
-          where: { id: existingUser.id },
-          data: { lastLoginAt: new Date() }
-        })
-        
-        return true
-      }
-      
-      // New user - will be auto-created by adapter
-      // Invite code validation happens on sign-in page
-      // User will be whitelisted after first sign-in via URL param
-      return true
-    },
     async session({ session, token }) {
       if (token && session.user) {
         // Fetch latest user data for session

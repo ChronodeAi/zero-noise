@@ -1,14 +1,57 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
+import { useSession } from 'next-auth/react'
 
 function ErrorContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const { data: session, update } = useSession()
   const error = searchParams.get('error')
+  const [inviteCode, setInviteCode] = useState('')
+  const [claiming, setClaiming] = useState(false)
+  const [claimError, setClaimError] = useState('')
   
+  const handleClaimInvite = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inviteCode.trim()) return
+    
+    setClaiming(true)
+    setClaimError('')
+    
+    try {
+      const response = await fetch('/api/invites/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteCode: inviteCode.toUpperCase().trim() })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        // Refresh session to get updated whitelist status
+        await update()
+        // Redirect to homepage
+        router.push('/')
+        router.refresh()
+      } else {
+        setClaimError(data.error || 'Failed to claim invite code')
+      }
+    } catch (error) {
+      console.error('Claim error:', error)
+      setClaimError('An error occurred. Please try again.')
+    } finally {
+      setClaiming(false)
+    }
+  }
+
   const errorMessages: Record<string, { title: string; description: string }> = {
+    'NotWhitelisted': {
+      title: 'Whitelist Required',
+      description: 'You need an invite code or admin approval to access Zero Noise.'
+    },
     'AccessDenied': {
       title: 'Access Denied',
       description: 'Your account is not whitelisted. Please contact an admin for access.'
@@ -38,23 +81,47 @@ function ErrorContent() {
           <p className="text-gray-600">{errorInfo.description}</p>
         </div>
         
+        {(error === 'NotWhitelisted' || error === 'AccessDenied') && session?.user?.email && (
+          <form onSubmit={handleClaimInvite} className="space-y-3">
+            <div>
+              <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 mb-2">
+                Have an invite code?
+              </label>
+              <input
+                id="inviteCode"
+                type="text"
+                value={inviteCode}
+                onChange={(e) => {
+                  setInviteCode(e.target.value.toUpperCase())
+                  setClaimError('')
+                }}
+                placeholder="WELCOME-2025-XXXX"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+              />
+              {claimError && (
+                <p className="mt-1 text-sm text-red-600">{claimError}</p>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={claiming || !inviteCode.trim()}
+              className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {claiming ? 'Claiming...' : 'Claim Invite Code'}
+            </button>
+          </form>
+        )}
+        
         <div className="space-y-3">
           <Link
             href="/auth/signin"
-            className="block w-full px-4 py-2 text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Try Again
-          </Link>
-          
-          <Link
-            href="/"
             className="block w-full px-4 py-2 text-center border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            Go Home
+            Sign In Again
           </Link>
         </div>
         
-        {error === 'AccessDenied' && (
+        {(error === 'NotWhitelisted' || error === 'AccessDenied') && (
           <div className="text-sm text-gray-500 text-center p-4 bg-gray-50 rounded-lg">
             <p className="font-medium mb-1">Need access?</p>
             <p>Ask an existing user for an invite code or request whitelist approval from an admin.</p>

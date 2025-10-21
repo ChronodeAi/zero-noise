@@ -13,13 +13,13 @@ export default auth((req) => {
     return NextResponse.redirect(new URL('/auth/signin', req.url))
   }
 
-  // Logged in but not whitelisted - show error
-  if (isLoggedIn && !isWhitelisted && !isAuthPage) {
-    return NextResponse.redirect(new URL('/auth/error?error=AccessDenied', req.url))
+  // Logged in but not whitelisted - allow only /auth/error for claiming invite
+  if (isLoggedIn && !isWhitelisted && !req.nextUrl.pathname.startsWith('/auth/error')) {
+    return NextResponse.redirect(new URL('/auth/error?error=NotWhitelisted', req.url))
   }
 
-  // Logged in and whitelisted - don't allow auth pages
-  if (isLoggedIn && isWhitelisted && isAuthPage) {
+  // Logged in and whitelisted - don't allow auth pages except error
+  if (isLoggedIn && isWhitelisted && isAuthPage && !req.nextUrl.pathname.startsWith('/auth/error')) {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
