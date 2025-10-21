@@ -1,9 +1,9 @@
 {
   "/_not-found/page": "/_not-found",
-  "/api/scrape-url/route": "/api/scrape-url",
-  "/api/search/route": "/api/search",
   "/api/collection/[id]/route": "/api/collection/[id]",
+  "/api/scrape-url/route": "/api/scrape-url",
   "/api/upload/route": "/api/upload",
+  "/api/search/route": "/api/search",
   "/c/[id]/page": "/c/[id]",
   "/page": "/"
 }

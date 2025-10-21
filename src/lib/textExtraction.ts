@@ -2,36 +2,42 @@ const pdfParse = require('pdf-parse')
 
 /**
  * Extract text content from file buffer based on MIME type
+ * Only extracts first 2000 chars for search preview
  */
 export async function extractTextFromFile(
   buffer: Buffer,
   mimeType: string
 ): Promise<string | null> {
   try {
-    // PDF files
-    if (mimeType === 'application/pdf') {
-      const data = await pdfParse(buffer)
-      return data.text
-    }
+    // Skip extraction for binary files (images, videos, etc.)
+    // Only index text-based files
     
-    // Plain text files
+    // Plain text files (CSV, TXT, MD, JSON)
     if (
       mimeType === 'text/plain' ||
       mimeType === 'text/csv' ||
       mimeType === 'text/markdown' ||
       mimeType === 'application/json'
     ) {
-      return buffer.toString('utf-8')
+      // For text files, just grab first 2000 chars
+      return buffer.toString('utf-8').substring(0, 2000)
+    }
+    
+    // PDF files - extract first page worth of text
+    if (mimeType === 'application/pdf') {
+      const data = await pdfParse(buffer, { max: 1 }) // Just first page
+      return data.text.substring(0, 2000)
     }
     
     // HTML files
     if (mimeType === 'text/html') {
       const html = buffer.toString('utf-8')
-      // Basic HTML tag stripping
-      return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+      // Basic HTML tag stripping, first 2000 chars
+      return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 2000)
     }
     
-    // For other file types, return null (not extractable yet)
+    // For other file types (images, videos, etc.), don't extract
+    // Search will work on filename only
     return null
   } catch (error) {
     console.error('Text extraction error:', error)
@@ -56,12 +62,13 @@ export function isTextExtractable(mimeType: string): boolean {
 }
 
 /**
- * Clean and normalize extracted text for embedding
+ * Clean and normalize extracted text for search indexing
+ * Keep it minimal - just enough for search, not full content
  */
 export function cleanTextForEmbedding(text: string): string {
   return text
     .replace(/\s+/g, ' ') // Normalize whitespace
     .replace(/[^\x20-\x7E\n]/g, '') // Remove non-printable characters
     .trim()
-    .substring(0, 100000) // Limit to 100k chars (~25k tokens)
+    .substring(0, 2000) // Limit to first 2000 chars (~500 words) - just a preview
 }
