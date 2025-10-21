@@ -23,17 +23,18 @@ export async function POST(request: NextRequest) {
     }
     
     // Perform full-text search using PostgreSQL
-    // Search in filename and textContent
-    const results = await prisma.$queryRawUnsafe<any[]>(`
+    // Search in files (filename and textContent) and links (title, description, url)
+    const fileResults = await prisma.$queryRawUnsafe<any[]>(`
       SELECT 
         "File"."id",
         "File"."cid",
-        "File"."filename",
+        "File"."filename" as name,
         "File"."size",
-        "File"."mimeType",
+        "File"."mimeType" as type,
         "File"."textContent",
         "File"."collectionId",
-        "File"."uploadedAt",
+        "File"."uploadedAt" as created_at,
+        'file' as result_type,
         ts_rank(
           to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename"),
           plainto_tsquery('english', $1)
@@ -46,15 +47,44 @@ export async function POST(request: NextRequest) {
       LIMIT $2
     `, query, limit)
     
+    const linkResults = await prisma.$queryRawUnsafe<any[]>(`
+      SELECT 
+        "Link"."id",
+        "Link"."url" as cid,
+        COALESCE("Link"."title", "Link"."url") as name,
+        0 as size,
+        "Link"."linkType" as type,
+        "Link"."description" as "textContent",
+        "Link"."collectionId",
+        "Link"."createdAt" as created_at,
+        'link' as result_type,
+        ts_rank(
+          to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url"),
+          plainto_tsquery('english', $1)
+        ) as rank
+      FROM "Link"
+      WHERE 
+        to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url")
+        @@ plainto_tsquery('english', $1)
+      ORDER BY rank DESC
+      LIMIT $2
+    `, query, limit)
+    
+    // Combine and sort results
+    const results = [...fileResults, ...linkResults]
+      .sort((a, b) => parseFloat(b.rank) - parseFloat(a.rank))
+      .slice(0, limit)
+    
     // Format results
     const formattedResults = results.map((result) => ({
       id: result.id,
       cid: result.cid,
-      filename: result.filename,
+      filename: result.name,
       size: result.size,
-      mimeType: result.mimeType,
+      mimeType: result.type,
       collectionId: result.collectionId,
-      uploadedAt: result.uploadedAt,
+      uploadedAt: result.created_at,
+      resultType: result.result_type,
       rank: parseFloat(result.rank),
       snippet: result.textContent?.substring(0, 200) || '',
     }))

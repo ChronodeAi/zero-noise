@@ -26,6 +26,7 @@ interface SearchResult {
   collectionId: string
   rank: number
   snippet: string
+  resultType: 'file' | 'link'
 }
 
 export default function Home() {
@@ -37,6 +38,42 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
+
+  const handleSaveUrls = async () => {
+    if (!urls.trim()) return
+
+    const formData = new FormData()
+    formData.append('urls', urls)
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Save failed')
+      }
+
+      // Store scraped URLs
+      if (data.urls && data.urls.length > 0) {
+        setUploadedLinks(data.urls)
+      }
+
+      // Store collection ID if present
+      if (data.collectionId) {
+        setCollectionId(data.collectionId)
+      }
+
+      // Clear URL input
+      setUrls('')
+    } catch (error) {
+      console.error('Save URLs failed:', error)
+      alert('Failed to save URLs: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    }
+  }
 
   const handleFilesSelected = async (files: File[]) => {
     // Story 3: Call /api/upload with server-side validation + URLs
@@ -166,9 +203,14 @@ export default function Home() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-lg mb-1">{result.filename}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-lg">{result.filename}</h3>
+                        <span className="text-xs px-2 py-1 rounded-full bg-gray-200 text-gray-700">
+                          {result.resultType === 'link' ? '🔗 URL' : '📄 File'}
+                        </span>
+                      </div>
                       <p className="text-sm text-gray-600 mb-2">
-                        {result.mimeType} • {(result.size / 1024 / 1024).toFixed(2)} MB
+                        {result.mimeType}{result.size > 0 && ` • ${(result.size / 1024 / 1024).toFixed(2)} MB`}
                       </p>
                       {result.snippet && (
                         <p className="text-sm text-gray-500 line-clamp-2">
@@ -216,9 +258,18 @@ https://twitter.com/user/status/..."
             className="w-full px-4 py-3 border border-gray-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={5}
           />
-          <p className="text-xs text-gray-500 mt-2">
-            URLs will be saved alongside your files in the collection
-          </p>
+          <div className="flex items-center justify-between mt-3">
+            <p className="text-xs text-gray-500">
+              URLs will be saved in a new collection
+            </p>
+            <button
+              onClick={handleSaveUrls}
+              disabled={!urls.trim()}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+            >
+              💾 Save URLs
+            </button>
+          </div>
         </div>
 
         {/* Collection URL */}
