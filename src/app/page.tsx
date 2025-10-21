@@ -17,12 +17,26 @@ interface UploadedLink {
   linkType: string
 }
 
+interface SearchResult {
+  id: string
+  cid: string
+  filename: string
+  size: number
+  mimeType: string
+  collectionId: string
+  rank: number
+  snippet: string
+}
+
 export default function Home() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [uploadedLinks, setUploadedLinks] = useState<UploadedLink[]>([])
   const [urls, setUrls] = useState('')
   const [collectionId, setCollectionId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [searching, setSearching] = useState(false)
 
   const handleFilesSelected = async (files: File[]) => {
     // Story 3: Call /api/upload with server-side validation + URLs
@@ -83,6 +97,29 @@ export default function Home() {
     }
   }
 
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!searchQuery.trim()) return
+
+    setSearching(true)
+    try {
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: searchQuery, limit: 10 }),
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        setSearchResults(data.results)
+      }
+    } catch (error) {
+      console.error('Search failed:', error)
+    } finally {
+      setSearching(false)
+    }
+  }
+
   return (
     <main className="min-h-screen p-8 md:p-24">
       <div className="max-w-4xl mx-auto">
@@ -92,10 +129,72 @@ export default function Home() {
           <p className="text-xl text-gray-600 mb-2">
             Decentralized P2P file sharing on IPFS
           </p>
-          <p className="text-sm text-gray-500">
-            Sprint 1: Upload Component ✅
-          </p>
         </div>
+
+        {/* Search Bar */}
+        <div className="mb-8">
+          <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search your files... (e.g., 'contract', 'presentation', 'invoice')"
+                className="w-full px-6 py-4 pr-32 text-lg border-2 border-gray-300 rounded-full focus:border-blue-500 focus:outline-none shadow-lg"
+              />
+              <button
+                type="submit"
+                disabled={searching || !searchQuery.trim()}
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {searching ? '...' : '🔍 Search'}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Search Results */}
+        {searchResults.length > 0 && (
+          <div className="mb-8 bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <h2 className="text-2xl font-semibold mb-4">🔍 Search Results ({searchResults.length})</h2>
+            <div className="space-y-3">
+              {searchResults.map((result) => (
+                <a
+                  key={result.id}
+                  href={`/c/${result.collectionId}`}
+                  className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-lg mb-1">{result.filename}</h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {result.mimeType} • {(result.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                      {result.snippet && (
+                        <p className="text-sm text-gray-500 line-clamp-2">
+                          {result.snippet}...
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-sm text-gray-500">Relevance</div>
+                      <div className="text-lg font-semibold text-blue-600">
+                        {(result.rank * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {searchQuery && !searching && searchResults.length === 0 && (
+          <div className="mb-8 text-center text-gray-500 py-8">
+            <p className="text-lg">No results found for "{searchQuery}"</p>
+            <p className="text-sm mt-2">Try different keywords or upload some files first</p>
+          </div>
+        )}
 
         {/* Upload Zone */}
         <div className="mb-8">
