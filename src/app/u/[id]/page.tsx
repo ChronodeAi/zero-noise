@@ -4,13 +4,13 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
 interface ProfilePageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const { id } = params
+  const { id } = await params
 
   // Fetch user data with stats
   const user = await prisma.user.findUnique({
