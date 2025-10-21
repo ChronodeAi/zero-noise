@@ -23,52 +23,117 @@ export async function POST(request: NextRequest) {
     }
     
     // Perform full-text search using PostgreSQL
-    // Search in files (filename and textContent) and links (title, description, url)
-    const fileResults = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT 
-        "File"."id",
-        "File"."cid",
-        "File"."filename" as name,
-        "File"."size",
-        "File"."mimeType" as type,
-        "File"."textContent",
-        "File"."collectionId",
-        "File"."uploadedAt" as created_at,
-        'file' as result_type,
-        ts_rank(
-          to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename"),
-          plainto_tsquery('english', $1)
-        ) as rank
-      FROM "File"
-      WHERE 
-        to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename")
-        @@ plainto_tsquery('english', $1)
-      ORDER BY rank DESC
-      LIMIT $2
-    `, query, limit)
+    // For short queries (< 3 chars), use ILIKE pattern matching instead of full-text search
+    // because PostgreSQL's english dictionary ignores short words
+    const usePatternMatch = query.trim().length < 3
     
-    const linkResults = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT 
-        "Link"."id",
-        "Link"."url" as cid,
-        COALESCE("Link"."title", "Link"."url") as name,
-        0 as size,
-        "Link"."linkType" as type,
-        "Link"."description" as "textContent",
-        "Link"."collectionId",
-        "Link"."createdAt" as created_at,
-        'link' as result_type,
-        ts_rank(
-          to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url"),
-          plainto_tsquery('english', $1)
-        ) as rank
-      FROM "Link"
-      WHERE 
-        to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url")
-        @@ plainto_tsquery('english', $1)
-      ORDER BY rank DESC
-      LIMIT $2
-    `, query, limit)
+    let fileResults: any[]
+    
+    if (usePatternMatch) {
+      // Pattern matching for short queries
+      fileResults = await prisma.$queryRawUnsafe<any[]>(`
+        SELECT 
+          "File"."id",
+          "File"."cid",
+          "File"."filename" as name,
+          "File"."size",
+          "File"."mimeType" as type,
+          "File"."textContent",
+          "File"."collectionId",
+          "File"."uploadedAt" as created_at,
+          'file' as result_type,
+          CASE 
+            WHEN "File"."filename" ILIKE $1 THEN 1.0
+            WHEN "File"."textContent" ILIKE $1 THEN 0.5
+            ELSE 0.1
+          END as rank
+        FROM "File"
+        WHERE 
+          "File"."filename" ILIKE $1
+          OR "File"."textContent" ILIKE $1
+        ORDER BY rank DESC
+        LIMIT $2
+      `, `%${query}%`, limit)
+    } else {
+      // Full-text search for longer queries
+      fileResults = await prisma.$queryRawUnsafe<any[]>(`
+        SELECT 
+          "File"."id",
+          "File"."cid",
+          "File"."filename" as name,
+          "File"."size",
+          "File"."mimeType" as type,
+          "File"."textContent",
+          "File"."collectionId",
+          "File"."uploadedAt" as created_at,
+          'file' as result_type,
+          ts_rank(
+            to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename"),
+            plainto_tsquery('english', $1)
+          ) as rank
+        FROM "File"
+        WHERE 
+          to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename")
+          @@ plainto_tsquery('english', $1)
+        ORDER BY rank DESC
+        LIMIT $2
+      `, query, limit)
+    }
+    
+    let linkResults: any[]
+    
+    if (usePatternMatch) {
+      // Pattern matching for short queries
+      linkResults = await prisma.$queryRawUnsafe<any[]>(`
+        SELECT 
+          "Link"."id",
+          "Link"."url" as cid,
+          COALESCE("Link"."title", "Link"."url") as name,
+          0 as size,
+          "Link"."linkType" as type,
+          "Link"."description" as "textContent",
+          "Link"."collectionId",
+          "Link"."createdAt" as created_at,
+          'link' as result_type,
+          CASE 
+            WHEN "Link"."title" ILIKE $1 THEN 1.0
+            WHEN "Link"."description" ILIKE $1 THEN 0.5
+            WHEN "Link"."url" ILIKE $1 THEN 0.3
+            ELSE 0.1
+          END as rank
+        FROM "Link"
+        WHERE 
+          "Link"."title" ILIKE $1
+          OR "Link"."description" ILIKE $1
+          OR "Link"."url" ILIKE $1
+        ORDER BY rank DESC
+        LIMIT $2
+      `, `%${query}%`, limit)
+    } else {
+      // Full-text search for longer queries
+      linkResults = await prisma.$queryRawUnsafe<any[]>(`
+        SELECT 
+          "Link"."id",
+          "Link"."url" as cid,
+          COALESCE("Link"."title", "Link"."url") as name,
+          0 as size,
+          "Link"."linkType" as type,
+          "Link"."description" as "textContent",
+          "Link"."collectionId",
+          "Link"."createdAt" as created_at,
+          'link' as result_type,
+          ts_rank(
+            to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url"),
+            plainto_tsquery('english', $1)
+          ) as rank
+        FROM "Link"
+        WHERE 
+          to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url")
+          @@ plainto_tsquery('english', $1)
+        ORDER BY rank DESC
+        LIMIT $2
+      `, query, limit)
+    }
     
     // Combine and sort results
     const results = [...fileResults, ...linkResults]
