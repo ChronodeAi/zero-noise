@@ -5,13 +5,13 @@ import { useDropzone } from 'react-dropzone'
 import { validateFiles, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '@/lib/fileValidation'
 
 interface UploadZoneProps {
-  onFilesSelected: (files: File[]) => Promise<void>
+  onFilesAdded: (files: File[]) => void // Changed to synchronous staging
   maxFileSize?: number // in bytes
   allowedTypes?: string[] // MIME types
 }
 
 export default function UploadZone({
-  onFilesSelected,
+  onFilesAdded,
   maxFileSize = 100 * 1024 * 1024, // 100MB default
   allowedTypes = [
     'application/pdf',
@@ -25,7 +25,7 @@ export default function UploadZone({
     'application/vnd.ms-excel',
   ],
 }: UploadZoneProps) {
-  const [uploading, setUploading] = useState(false)
+  const [validating, setValidating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const onDrop = useCallback(
@@ -53,7 +53,7 @@ export default function UploadZone({
         return
       }
 
-      setUploading(true)
+      setValidating(true)
       try {
         // Run comprehensive validation (MIME, size, magic bytes)
         const validationResults = await validateFiles(acceptedFiles)
@@ -65,19 +65,19 @@ export default function UploadZone({
             (f) => `${f.file.name}: ${f.result.error}`
           )
           setError(errorMessages.join(' • '))
-          setUploading(false)
+          setValidating(false)
           return
         }
 
-        // All files valid, proceed with upload
-        await onFilesSelected(acceptedFiles)
+        // All files valid, stage them (don't upload yet)
+        onFilesAdded(acceptedFiles)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Upload failed')
+        setError(err instanceof Error ? err.message : 'Validation failed')
       } finally {
-        setUploading(false)
+        setValidating(false)
       }
     },
-    [onFilesSelected, maxFileSize]
+    [onFilesAdded, maxFileSize]
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -102,10 +102,10 @@ export default function UploadZone({
               ? 'border-blue-500 bg-blue-50'
               : 'border-gray-300 hover:border-gray-400'
           }
-          ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
+          ${validating ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
-        <input {...getInputProps()} disabled={uploading} />
+        <input {...getInputProps()} disabled={validating} />
         
         <div className="space-y-4">
           {/* Icon */}
@@ -126,9 +126,9 @@ export default function UploadZone({
           </div>
 
           {/* Text */}
-          {uploading ? (
+          {validating ? (
             <div>
-              <p className="text-lg font-medium text-gray-700">Uploading...</p>
+              <p className="text-lg font-medium text-gray-700">Validating...</p>
               <div className="mt-2 w-full max-w-xs mx-auto h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div className="h-full bg-blue-500 animate-pulse" style={{ width: '100%' }} />
               </div>
@@ -147,7 +147,7 @@ export default function UploadZone({
           )}
 
           {/* File info */}
-          {!uploading && (
+          {!validating && (
             <p className="text-xs text-gray-400">
               Supported: PDF, Images, Videos, Text, CSV • Max {maxFileSize / 1024 / 1024}MB per file
             </p>

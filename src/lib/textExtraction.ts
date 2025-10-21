@@ -1,4 +1,4 @@
-const pdfParse = require('pdf-parse')
+import pdfParse from 'pdf-parse'
 
 /**
  * Extract text content from file buffer based on MIME type

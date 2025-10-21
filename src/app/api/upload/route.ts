@@ -140,12 +140,29 @@ export async function POST(request: NextRequest) {
     // Story 2: Save metadata to database
     if (successes.length > 0 || urlMetadata.length > 0) {
       try {
+        // Check for existing CIDs to avoid unique constraint violations
+        const existingFiles = await prisma.file.findMany({
+          where: {
+            cid: {
+              in: successes.map(f => f.cid!).filter(Boolean)
+            }
+          },
+          select: { cid: true }
+        })
+
+        const existingCids = new Set(existingFiles.map(f => f.cid))
+        
+        // Filter out files with duplicate CIDs
+        const newFiles = successes.filter(file => 
+          file.cid && !existingCids.has(file.cid)
+        )
+
         // Create collection with files and links
         await prisma.collection.create({
           data: {
             id: collectionId,
             files: {
-              create: successes
+              create: newFiles
                 .filter((file) => file.cid && file.size && file.type)
                 .map((file) => ({
                   cid: file.cid!,
@@ -169,6 +186,11 @@ export async function POST(request: NextRequest) {
             },
           },
         })
+        
+        // Log duplicates if any
+        if (existingCids.size > 0) {
+          console.log(`Skipped ${existingCids.size} duplicate file(s) (already in database)`)
+        }
       } catch (dbError) {
         console.error('Database save error:', dbError)
         // Don't fail the upload if DB save fails, just log it
@@ -177,13 +199,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Return results (partial or full success)
-    return NextResponse.json({
-      success: true,
-      message: `${successes.length} file(s) and ${urlMetadata.length} URL(s) processed successfully`,
-      collectionId,
-      results,
-      urls: urlMetadata,
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        message: `${successes.length} file(s) and ${urlMetadata.length} URL(s) processed successfully`,
+        collectionId,
+        results,
+        urls: urlMetadata,
+      },
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    )
   } catch (error) {
     console.error('Upload API error:', error)
     return NextResponse.json(

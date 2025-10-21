@@ -1,8 +1,5 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
   "/api/upload/route": "app/api/upload/route.js",
-  "/api/scrape-url/route": "app/api/scrape-url/route.js",
-  "/api/search/route": "app/api/search/route.js",
   "/api/collection/[id]/route": "app/api/collection/[id]/route.js",
   "/page": "app/page.js",
   "/c/[id]/page": "app/c/[id]/page.js"

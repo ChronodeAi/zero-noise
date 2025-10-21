@@ -30,6 +30,7 @@ interface SearchResult {
 }
 
 export default function Home() {
+  const [stagedFiles, setStagedFiles] = useState<File[]>([])
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [uploadedLinks, setUploadedLinks] = useState<UploadedLink[]>([])
   const [urls, setUrls] = useState('')
@@ -38,6 +39,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   const handleSaveUrls = async () => {
     if (!urls.trim()) return
@@ -75,59 +77,79 @@ export default function Home() {
     }
   }
 
-  const handleFilesSelected = async (files: File[]) => {
-    // Story 3: Call /api/upload with server-side validation + URLs
-    const formData = new FormData()
-    files.forEach((file) => formData.append('file', file))
-    
-    // Add URLs if present
-    if (urls.trim()) {
-      formData.append('urls', urls)
+  const handleFilesAdded = (files: File[]) => {
+    // Add files to staging area
+    setStagedFiles((prev) => [...prev, ...files])
+  }
+
+  const handleRemoveFile = (index: number) => {
+    setStagedFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleSaveFiles = async () => {
+    if (stagedFiles.length === 0 && !urls.trim()) return
+
+    setUploading(true)
+    try {
+      // Story 3: Call /api/upload with server-side validation + URLs
+      const formData = new FormData()
+      stagedFiles.forEach((file) => formData.append('file', file))
+      
+      // Add URLs if present
+      if (urls.trim()) {
+        formData.append('urls', urls)
+      }
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      // Check content type before parsing
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text()
+        console.error('Non-JSON response:', text)
+        throw new Error(`Server error: ${response.status} ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed')
+      }
+
+      // Store successful file uploads
+      const successfulUploads = data.results
+        .filter((r: any) => r.success)
+        .map((r: any) => ({
+          name: r.filename,
+          size: r.size,
+          cid: r.cid,
+          gatewayUrl: r.gatewayUrl,
+        }))
+
+      setUploadedFiles((prev) => [...prev, ...successfulUploads])
+      
+      // Store scraped URLs
+      if (data.urls && data.urls.length > 0) {
+        setUploadedLinks(data.urls)
+      }
+      
+      // Store collection ID if present
+      if (data.collectionId) {
+        setCollectionId(data.collectionId)
+      }
+      
+      // Clear staged files and URLs
+      setStagedFiles([])
+      setUrls('')
+    } catch (error) {
+      console.error('Save failed:', error)
+      alert('Failed to save: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    } finally {
+      setUploading(false)
     }
-
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    })
-
-    // Check content type before parsing
-    const contentType = response.headers.get('content-type')
-    if (!contentType || !contentType.includes('application/json')) {
-      const text = await response.text()
-      console.error('Non-JSON response:', text)
-      throw new Error(`Server error: ${response.status} ${response.statusText}`)
-    }
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Upload failed')
-    }
-
-    // Store successful file uploads
-    const successfulUploads = data.results
-      .filter((r: any) => r.success)
-      .map((r: any) => ({
-        name: r.filename,
-        size: r.size,
-        cid: r.cid,
-        gatewayUrl: r.gatewayUrl,
-      }))
-
-    setUploadedFiles((prev) => [...prev, ...successfulUploads])
-    
-    // Store scraped URLs
-    if (data.urls && data.urls.length > 0) {
-      setUploadedLinks(data.urls)
-    }
-    
-    // Store collection ID if present
-    if (data.collectionId) {
-      setCollectionId(data.collectionId)
-    }
-    
-    // Clear URL input
-    setUrls('')
   }
 
   const copyCollectionUrl = async () => {
@@ -248,8 +270,43 @@ export default function Home() {
 
         {/* Upload Zone */}
         <div className="mb-8">
-          <UploadZone onFilesSelected={handleFilesSelected} />
+          <UploadZone onFilesAdded={handleFilesAdded} />
         </div>
+
+        {/* Staged Files */}
+        {stagedFiles.length > 0 && (
+          <div className="mb-8 bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <h2 className="text-xl font-semibold mb-4">📋 Staged Files ({stagedFiles.length})</h2>
+            <div className="space-y-2 mb-4">
+              {stagedFiles.map((file, index) => (
+                <div
+                  key={index}
+                  className="p-3 bg-gray-50 rounded-lg flex justify-between items-center"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{file.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type || 'unknown'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveFile(index)}
+                    className="ml-4 px-3 py-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={handleSaveFiles}
+              disabled={uploading}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-lg"
+            >
+              {uploading ? '⏳ Uploading to IPFS...' : '💾 Save Files to IPFS'}
+            </button>
+          </div>
+        )}
 
         {/* URL Input */}
         <div className="mb-8 bg-white rounded-lg shadow-md p-6 border border-gray-200">
@@ -268,14 +325,16 @@ https://twitter.com/user/status/..."
           />
           <div className="flex items-center justify-between mt-3">
             <p className="text-xs text-gray-500">
-              URLs will be saved in a new collection
+              {stagedFiles.length > 0 
+                ? 'URLs will be saved with staged files in same collection'
+                : 'URLs will be saved in a new collection'}
             </p>
             <button
-              onClick={handleSaveUrls}
-              disabled={!urls.trim()}
+              onClick={stagedFiles.length > 0 ? handleSaveFiles : handleSaveUrls}
+              disabled={!urls.trim() || uploading}
               className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
             >
-              💾 Save URLs
+              {uploading ? '⏳ Saving...' : '💾 Save URLs'}
             </button>
           </div>
         </div>
