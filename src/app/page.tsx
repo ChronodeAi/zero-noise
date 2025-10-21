@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import UploadZone from '@/components/UploadZone'
@@ -32,7 +32,7 @@ interface SearchResult {
   resultType: 'file' | 'link'
 }
 
-export default function Home() {
+function HomeContent() {
   const { data: session } = useSession()
   const searchParams = useSearchParams()
   const [stagedFiles, setStagedFiles] = useState<File[]>([])
@@ -629,5 +629,20 @@ https://twitter.com/user/status/..."
       </div>
     </main>
     </>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-6xl font-bold mb-4">Zero Noise</h1>
+          <p className="text-xl text-gray-600">Loading...</p>
+        </div>
+      </main>
+    }>
+      <HomeContent />
+    </Suspense>
   )
 }
