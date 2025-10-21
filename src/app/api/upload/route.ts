@@ -3,6 +3,7 @@ import { validateUploadedFile, sanitizeFilename } from '@/lib/serverValidation'
 import { uploadToFilebase, getFilebaseGatewayUrl, getPublicGatewayUrls } from '@/lib/filebaseClient'
 import { prisma } from '@/lib/prisma'
 import { randomUUID } from 'crypto'
+import { scrapeUrls } from '@/lib/urlScraper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -18,10 +19,14 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const files = formData.getAll('file') as File[]
+    const urlsString = formData.get('urls') as string | null
+    
+    // Parse URLs if provided
+    const urls: string[] = urlsString ? urlsString.split('\n').filter(Boolean).map(u => u.trim()) : []
 
-    if (!files || files.length === 0) {
+    if ((!files || files.length === 0) && urls.length === 0) {
       return NextResponse.json(
-        { error: 'No files provided' },
+        { error: 'No files or URLs provided' },
         { status: 400 }
       )
     }
@@ -108,10 +113,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Story 2: Save metadata to database
-    if (successes.length > 0) {
+    // Scrape URL metadata if URLs provided
+    let urlMetadata: any[] = []
+    if (urls.length > 0) {
       try {
-        // Create collection with all successful files
+        urlMetadata = await scrapeUrls(urls)
+      } catch (error) {
+        console.error('URL scraping error:', error)
+      }
+    }
+
+    // Story 2: Save metadata to database
+    if (successes.length > 0 || urlMetadata.length > 0) {
+      try {
+        // Create collection with files and links
         await prisma.collection.create({
           data: {
             id: collectionId,
@@ -125,6 +140,16 @@ export async function POST(request: NextRequest) {
                   mimeType: file.type!,
                 })),
             },
+            links: {
+              create: urlMetadata.map((meta) => ({
+                url: meta.url,
+                title: meta.title,
+                description: meta.description,
+                imageUrl: meta.imageUrl,
+                siteName: meta.siteName,
+                linkType: meta.linkType,
+              })),
+            },
           },
         })
       } catch (dbError) {
@@ -137,9 +162,10 @@ export async function POST(request: NextRequest) {
     // Return results (partial or full success)
     return NextResponse.json({
       success: true,
-      message: `${successes.length} file(s) validated successfully`,
+      message: `${successes.length} file(s) and ${urlMetadata.length} URL(s) processed successfully`,
       collectionId,
       results,
+      urls: urlMetadata,
     })
   } catch (error) {
     console.error('Upload API error:', error)

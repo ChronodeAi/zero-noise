@@ -1,7 +1,8 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
   "/api/collection/[id]/route": "app/api/collection/[id]/route.js",
+  "/api/scrape-url/route": "app/api/scrape-url/route.js",
   "/api/upload/route": "app/api/upload/route.js",
-  "/page": "app/page.js",
-  "/c/[id]/page": "app/c/[id]/page.js"
+  "/c/[id]/page": "app/c/[id]/page.js",
+  "/page": "app/page.js"
 }

@@ -1,6 +1,7 @@
 {
   "version": 1,
   "functions": {
+    "/api/scrape-url": {},
     "/api/collection/[id]": {},
     "/api/upload": {}
   }
