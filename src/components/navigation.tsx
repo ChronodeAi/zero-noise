@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
+import { getLevelFromXP } from '@/lib/xp'
 
 export function Navigation() {
   const { data: session, status } = useSession()
@@ -36,9 +37,12 @@ export function Navigation() {
               Zero Noise
             </Link>
             <div className="flex items-center gap-6">
-              <p className="text-sm text-gray-500 hidden sm:block">
-                Decentralized P2P file sharing on IPFS
-              </p>
+              <Link 
+                href="/leaderboard" 
+                className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                🏆 Leaderboard
+              </Link>
               {session.user.isAdmin && (
                 <Link 
                   href="/admin" 
@@ -51,23 +55,30 @@ export function Navigation() {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* XP Badge */}
-            <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full border border-blue-200">
+            {/* Level & XP Badge */}
+            <Link
+              href={`/u/${session.user.id}`}
+              className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-200 hover:border-blue-300 transition-colors"
+            >
+              <span className="text-lg">{getLevelFromXP(session.user.xp).icon}</span>
               <span className="text-blue-600 font-semibold text-sm">
                 {session.user.xp} XP
               </span>
-            </div>
+            </Link>
 
             {/* User Menu */}
             <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
+              <Link
+                href={`/u/${session.user.id}`}
+                className="text-right hidden sm:block hover:opacity-80 transition-opacity"
+              >
                 <p className="text-sm font-medium text-gray-900">
                   {session.user.email}
                 </p>
                 {session.user.isAdmin && (
                   <span className="text-xs text-blue-600 font-medium">Admin</span>
                 )}
-              </div>
+              </Link>
 
               <button
                 onClick={() => signOut({ callbackUrl: '/auth/signin' })}
