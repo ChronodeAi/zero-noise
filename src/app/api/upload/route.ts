@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateUploadedFile, sanitizeFilename } from '@/lib/serverValidation'
 import { uploadToFilebase, getFilebaseGatewayUrl, getPublicGatewayUrls } from '@/lib/filebaseClient'
+import { prisma } from '@/lib/prisma'
+import { randomUUID } from 'crypto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -23,6 +25,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Generate collection ID for this upload session
+    const collectionId = randomUUID()
 
     // Validate and process each file
     const results = await Promise.all(
@@ -75,6 +80,7 @@ export async function POST(request: NextRequest) {
             gatewayUrl: getFilebaseGatewayUrl(uploadResult.cid!),
             fallbackUrls: getPublicGatewayUrls(uploadResult.cid!),
             message: 'Successfully uploaded to Filebase IPFS',
+            collectionId, // Include collection ID in response
           }
         } catch (error) {
           return {
@@ -102,10 +108,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Story 2: Save metadata to database
+    if (successes.length > 0) {
+      try {
+        // Create collection with all successful files
+        await prisma.collection.create({
+          data: {
+            id: collectionId,
+            files: {
+              create: successes.map((file) => ({
+                cid: file.cid!,
+                filename: file.sanitizedFilename || file.filename,
+                size: file.size,
+                mimeType: file.type,
+              })),
+            },
+          },
+        })
+      } catch (dbError) {
+        console.error('Database save error:', dbError)
+        // Don't fail the upload if DB save fails, just log it
+        // Files are already in IPFS
+      }
+    }
+
     // Return results (partial or full success)
     return NextResponse.json({
       success: true,
       message: `${successes.length} file(s) validated successfully`,
+      collectionId,
       results,
     })
   } catch (error) {

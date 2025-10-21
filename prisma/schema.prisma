@@ -1,0 +1,34 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Collection {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  files     File[]
+}
+
+model File {
+  id           String     @id @default(uuid())
+  cid          String     @unique
+  filename     String
+  size         Int
+  mimeType     String
+  uploadedAt   DateTime   @default(now())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  
+  @@index([collectionId])
+  @@index([cid])
+}
