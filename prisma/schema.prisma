@@ -46,6 +46,7 @@ model Link {
   description  String?    @db.Text
   imageUrl     String?
   siteName     String?
+  author       String?    // Channel name for YouTube, username for Twitter, etc.
   linkType     String     // "article", "video", "social", "generic"
   createdAt    DateTime   @default(now())
   collectionId String

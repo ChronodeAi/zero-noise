@@ -181,6 +181,7 @@ export async function POST(request: NextRequest) {
                 description: meta.description,
                 imageUrl: meta.imageUrl,
                 siteName: meta.siteName,
+                author: meta.author,
                 linkType: meta.linkType,
               })),
             },

@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
           'link' as result_type,
           CASE 
             WHEN "Link"."title" ILIKE $1 THEN 1.0
+            WHEN "Link"."author" ILIKE $1 THEN 0.9
             WHEN "Link"."description" ILIKE $1 THEN 0.5
             WHEN "Link"."url" ILIKE $1 THEN 0.3
             ELSE 0.1
@@ -104,6 +105,7 @@ export async function POST(request: NextRequest) {
         FROM "Link"
         WHERE 
           "Link"."title" ILIKE $1
+          OR "Link"."author" ILIKE $1
           OR "Link"."description" ILIKE $1
           OR "Link"."url" ILIKE $1
         ORDER BY rank DESC
@@ -123,12 +125,12 @@ export async function POST(request: NextRequest) {
           "Link"."createdAt" as created_at,
           'link' as result_type,
           ts_rank(
-            to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url"),
+            to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."author", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url"),
             plainto_tsquery('english', $1)
           ) as rank
         FROM "Link"
         WHERE 
-          to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url")
+          to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."author", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url")
           @@ plainto_tsquery('english', $1)
         ORDER BY rank DESC
         LIMIT $2

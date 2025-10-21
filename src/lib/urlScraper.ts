@@ -8,6 +8,7 @@ export interface UrlMetadata {
   description?: string
   imageUrl?: string
   siteName?: string
+  author?: string // Channel name for YouTube, username for Twitter, etc.
   linkType: 'article' | 'video' | 'social' | 'generic'
 }
 
@@ -32,6 +33,7 @@ export async function scrapeUrl(url: string): Promise<UrlMetadata> {
           description: oembedData.description,
           imageUrl: oembedData.thumbnail_url,
           siteName: oembedData.provider_name,
+          author: oembedData.author_name, // YouTube channel name
           linkType: 'video',
         }
       } catch (err) {
@@ -48,6 +50,7 @@ export async function scrapeUrl(url: string): Promise<UrlMetadata> {
       description: result.ogDescription || result.twitterDescription,
       imageUrl: result.ogImage?.[0]?.url || result.twitterImage?.[0]?.url,
       siteName: result.ogSiteName,
+      author: result.ogArticleAuthor || result.twitterCreator,
       linkType,
     }
   } catch (error) {
