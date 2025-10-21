@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
+import { validateFiles, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '@/lib/fileValidation'
 
 interface UploadZoneProps {
   onFilesSelected: (files: File[]) => Promise<void>
@@ -31,7 +32,7 @@ export default function UploadZone({
     async (acceptedFiles: File[], rejectedFiles: any[]) => {
       setError(null)
 
-      // Handle rejected files
+      // Handle rejected files from react-dropzone
       if (rejectedFiles.length > 0) {
         const errors = rejectedFiles.map((file) => {
           const errorCode = file.errors[0]?.code
@@ -54,6 +55,21 @@ export default function UploadZone({
 
       setUploading(true)
       try {
+        // Run comprehensive validation (MIME, size, magic bytes)
+        const validationResults = await validateFiles(acceptedFiles)
+        
+        // Check for validation failures
+        const failures = validationResults.filter((r) => !r.result.valid)
+        if (failures.length > 0) {
+          const errorMessages = failures.map(
+            (f) => `${f.file.name}: ${f.result.error}`
+          )
+          setError(errorMessages.join(' • '))
+          setUploading(false)
+          return
+        }
+
+        // All files valid, proceed with upload
         await onFilesSelected(acceptedFiles)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Upload failed')
