@@ -15,13 +15,31 @@ interface InviteCode {
   users: Array<{ email: string; createdAt: string }>
 }
 
+interface User {
+  id: string
+  email: string
+  name: string | null
+  xp: number
+  isWhitelisted: boolean
+  isAdmin: boolean
+  lastLoginAt: string | null
+  createdAt: string
+  _count: {
+    files: number
+    links: number
+  }
+}
+
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'invites' | 'users'>('invites')
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState<string | null>(null)
+  const [updatingUser, setUpdatingUser] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -33,17 +51,35 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (session?.user?.isAdmin) {
-      fetchInviteCodes()
+      if (activeTab === 'invites') {
+        fetchInviteCodes()
+      } else {
+        fetchUsers()
+      }
     }
-  }, [session])
+  }, [session, activeTab])
 
   async function fetchInviteCodes() {
+    setLoading(true)
     try {
       const response = await fetch('/api/admin/invites')
       const data = await response.json()
       setInviteCodes(data.inviteCodes || [])
     } catch (error) {
       console.error('Failed to fetch invite codes:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function fetchUsers() {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/admin/users')
+      const data = await response.json()
+      setUsers(data.users || [])
+    } catch (error) {
+      console.error('Failed to fetch users:', error)
     } finally {
       setLoading(false)
     }
@@ -72,6 +108,25 @@ export default function AdminPage() {
     navigator.clipboard.writeText(code)
     setCopied(code)
     setTimeout(() => setCopied(null), 2000)
+  }
+
+  async function toggleWhitelist(userId: string, currentStatus: boolean) {
+    setUpdatingUser(userId)
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isWhitelisted: !currentStatus })
+      })
+
+      if (response.ok) {
+        await fetchUsers()
+      }
+    } catch (error) {
+      console.error('Failed to toggle whitelist:', error)
+    } finally {
+      setUpdatingUser(null)
+    }
   }
 
   function getStatus(invite: InviteCode) {
@@ -109,22 +164,48 @@ export default function AdminPage() {
       <Navigation />
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
-              <p className="text-gray-600 mt-1">Manage invite codes</p>
-            </div>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Admin Panel</h1>
             
-            <button
-              onClick={generateInviteCode}
-              disabled={generating}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 font-medium"
-            >
-              {generating ? 'Generating...' : '+ Generate Invite Code'}
-            </button>
+            <div className="flex gap-4 border-b border-gray-200">
+              <button
+                onClick={() => setActiveTab('invites')}
+                className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                  activeTab === 'invites'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Invite Codes
+              </button>
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                  activeTab === 'users'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Users
+              </button>
+            </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          {activeTab === 'invites' && (
+            <div className="mb-4 flex justify-end">
+            
+              <button
+                onClick={generateInviteCode}
+                disabled={generating}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 font-medium"
+              >
+                {generating ? 'Generating...' : '+ Generate Invite Code'}
+              </button>
+            </div>
+          )}
+
+          {activeTab === 'invites' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
@@ -190,6 +271,63 @@ export default function AdminPage() {
               )}
             </div>
           </div>
+          )}
+
+          {activeTab === 'users' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">XP</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Uploads</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Login</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {users.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm">
+                          <div>
+                            <div className="font-medium text-gray-900">{user.email}</div>
+                            {user.isAdmin && <span className="text-xs text-blue-600">Admin</span>}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{user.xp}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{user._count.files + user._count.links}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            user.isWhitelisted ? 'text-green-600 bg-green-50' : 'text-gray-500 bg-gray-100'
+                          }`}>
+                            {user.isWhitelisted ? 'Whitelisted' : 'Not Whitelisted'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => toggleWhitelist(user.id, user.isWhitelisted)}
+                            disabled={updatingUser === user.id}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
+                          >
+                            {updatingUser === user.id ? 'Updating...' : user.isWhitelisted ? 'Remove' : 'Whitelist'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {users.length === 0 && (
+                  <div className="text-center py-12 text-gray-500">No users yet.</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>
