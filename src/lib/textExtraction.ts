@@ -23,10 +23,10 @@ export async function extractTextFromFile(
     
     // PDF files - extract first page worth of text
     if (mimeType === 'application/pdf') {
-      // Dynamic import for CommonJS module
-      const pdfParse = (await import('pdf-parse')).default
-      const data = await pdfParse(buffer, { max: 1 }) // Just first page
-      return data.text.substring(0, 2000)
+      // TODO: Re-enable PDF text extraction after fixing import issues
+      // For now, PDFs will be searchable by filename only
+      console.log('PDF text extraction temporarily disabled')
+      return null
     }
     
     // HTML files
