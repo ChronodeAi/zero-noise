@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateUploadedFile, sanitizeFilename } from '@/lib/serverValidation'
+import { uploadToFilebase, getFilebaseGatewayUrl, getPublicGatewayUrls } from '@/lib/filebaseClient'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
  * POST /api/upload
- * Upload files with server-side validation
+ * Upload files with server-side validation and Filebase IPFS upload
  * 
- * Story 3: Validation only (no IPFS upload yet)
- * Story 4: Will add Filebase IPFS integration
+ * Story 3: Server-side validation ✅
+ * Story 4: Filebase IPFS integration ✅
  */
 export async function POST(request: NextRequest) {
   try {
@@ -50,18 +51,30 @@ export async function POST(request: NextRequest) {
           // Sanitize filename
           const safeFilename = sanitizeFilename(file.name)
 
-          // TODO Story 4: Upload to Filebase IPFS here
-          // For now, just return success with mock CID
-          const mockCID = `Qm${Buffer.from(file.name).toString('base64').substring(0, 44)}`
+          // Story 4: Upload to Filebase IPFS
+          const uploadResult = await uploadToFilebase(buffer, safeFilename)
 
+          if (!uploadResult.success) {
+            return {
+              filename: file.name,
+              success: false,
+              error: `Filebase upload failed: ${uploadResult.error}`,
+              errorCode: 'UPLOAD_FAILED',
+            }
+          }
+
+          // Success! File uploaded to IPFS
           return {
             filename: file.name,
             sanitizedFilename: safeFilename,
             success: true,
             size: buffer.length,
             type: file.type,
-            cid: mockCID, // Mock CID for Story 3
-            message: 'Validation passed (Story 3 - not uploaded to IPFS yet)',
+            cid: uploadResult.cid!,
+            duration: uploadResult.duration,
+            gatewayUrl: getFilebaseGatewayUrl(uploadResult.cid!),
+            fallbackUrls: getPublicGatewayUrls(uploadResult.cid!),
+            message: 'Successfully uploaded to Filebase IPFS',
           }
         } catch (error) {
           return {

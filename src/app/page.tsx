@@ -3,8 +3,15 @@
 import { useState } from 'react'
 import UploadZone from '@/components/UploadZone'
 
+interface UploadedFile {
+  name: string
+  size: number
+  cid?: string
+  gatewayUrl?: string
+}
+
 export default function Home() {
-  const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; size: number }>>([])
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
 
   const handleFilesSelected = async (files: File[]) => {
     // Story 3: Call /api/upload with server-side validation
@@ -22,13 +29,14 @@ export default function Home() {
       throw new Error(data.error || 'Upload failed')
     }
 
-    // Store successful uploads
+    // Store successful uploads with CIDs and gateway URLs
     const successfulUploads = data.results
       .filter((r: any) => r.success)
       .map((r: any) => ({
         name: r.filename,
         size: r.size,
         cid: r.cid,
+        gatewayUrl: r.gatewayUrl,
       }))
 
     setUploadedFiles((prev) => [...prev, ...successfulUploads])
@@ -63,13 +71,30 @@ export default function Home() {
                   key={index}
                   className="p-4 bg-gray-50 rounded-lg flex justify-between items-center"
                 >
-                  <div>
+                  <div className="flex-1">
                     <p className="font-medium">{file.name}</p>
                     <p className="text-sm text-gray-500">
                       {(file.size / 1024 / 1024).toFixed(2)} MB
                     </p>
+                    {file.cid && (
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-400 font-mono">
+                          CID: {file.cid.substring(0, 20)}...
+                        </p>
+                        {file.gatewayUrl && (
+                          <a
+                            href={file.gatewayUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:text-blue-800 underline"
+                          >
+                            View on IPFS Gateway →
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-green-600">
+                  <div className="text-green-600 flex-shrink-0">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
