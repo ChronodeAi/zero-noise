@@ -6,20 +6,35 @@ import { useSearchParams } from 'next/navigation'
 
 export default function SignInPage() {
   const [email, setEmail] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
+  const [codeError, setCodeError] = useState('')
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
   
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setCodeError('')
     
     try {
+      // Validate invite code first
+      const codeCheck = await fetch(`/api/invites/${inviteCode}`)
+      const codeData = await codeCheck.json()
+      
+      if (!codeData.valid) {
+        setCodeError(codeData.message || 'Invalid invite code')
+        setIsLoading(false)
+        return
+      }
+      
+      // Valid code - proceed with sign in
+      // Encode invite code in callback URL so we can use it after email verification
       const result = await signIn('nodemailer', { 
         email, 
         redirect: false,
-        callbackUrl: '/' 
+        callbackUrl: `/?inviteCode=${inviteCode.toUpperCase()}` 
       })
       
       if (result?.error) {
@@ -81,6 +96,27 @@ export default function SignInPage() {
         
         <form onSubmit={handleEmailSignIn} className="space-y-4">
           <div>
+            <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 mb-2">
+              Invite Code
+            </label>
+            <input
+              id="inviteCode"
+              type="text"
+              value={inviteCode}
+              onChange={(e) => {
+                setInviteCode(e.target.value.toUpperCase())
+                setCodeError('')
+              }}
+              required
+              placeholder="WELCOME-2025-XXXX"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+            />
+            {codeError && (
+              <p className="mt-1 text-sm text-red-600">{codeError}</p>
+            )}
+          </div>
+          
+          <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
               Email address
             </label>
@@ -97,10 +133,10 @@ export default function SignInPage() {
           
           <button
             type="submit"
-            disabled={isLoading || !email}
+            disabled={isLoading || !email || !inviteCode}
             className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
-            {isLoading ? 'Sending magic link...' : 'Send magic link'}
+            {isLoading ? 'Validating...' : 'Send magic link'}
           </button>
           
           <div className="text-center text-sm text-gray-500">

@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import UploadZone from '@/components/UploadZone'
 import { Navigation } from '@/components/navigation'
 
@@ -31,6 +33,8 @@ interface SearchResult {
 }
 
 export default function Home() {
+  const { data: session } = useSession()
+  const searchParams = useSearchParams()
   const [stagedFiles, setStagedFiles] = useState<File[]>([])
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [uploadedLinks, setUploadedLinks] = useState<UploadedLink[]>([])
@@ -41,6 +45,31 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [uploading, setUploading] = useState(false)
+
+  // Handle invite code from URL (after email verification)
+  useEffect(() => {
+    const inviteCode = searchParams.get('inviteCode')
+    if (!inviteCode || !session?.user?.email) return
+
+    async function claimInviteCode() {
+      try {
+        const response = await fetch('/api/invites/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inviteCode })
+        })
+
+        if (response.ok) {
+          // Remove invite code from URL
+          window.history.replaceState({}, '', '/')
+        }
+      } catch (error) {
+        console.error('Failed to claim invite code:', error)
+      }
+    }
+
+    claimInviteCode()
+  }, [searchParams, session])
 
   const handleSaveUrls = async () => {
     if (!urls.trim()) return

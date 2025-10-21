@@ -35,9 +35,19 @@ export function Navigation() {
             <Link href="/" className="text-2xl font-bold text-gray-900">
               Zero Noise
             </Link>
-            <p className="text-sm text-gray-500 hidden sm:block">
-              Decentralized P2P file sharing on IPFS
-            </p>
+            <div className="flex items-center gap-6">
+              <p className="text-sm text-gray-500 hidden sm:block">
+                Decentralized P2P file sharing on IPFS
+              </p>
+              {session.user.isAdmin && (
+                <Link 
+                  href="/admin" 
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  Admin Panel
+                </Link>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
