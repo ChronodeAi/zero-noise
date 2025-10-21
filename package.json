@@ -1,0 +1,21 @@
+{
+  "name": "zero-noise",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Decentralized P2P file sharing platform",
+  "scripts": {
+    "spike:filebase": "node scripts/spike-filebase.js",
+    "spike:storacha": "node scripts/spike-storacha.js",
+    "spike:gateways": "node scripts/spike-gateways.js",
+    "spike:all": "npm run spike:filebase && npm run spike:storacha && npm run spike:gateways"
+  },
+  "dependencies": {
+    "@storacha/client": "^1.8.2",
+    "axios": "^1.6.0",
+    "dotenv": "^16.4.5",
+    "form-data": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

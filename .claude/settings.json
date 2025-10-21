@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/Users/chronode/.local/share/ai-writing-guide/agentic/code/frameworks/sdlc-complete/**)",
+      "Read(/Users/chronode/Documents/zero-noise/**)",
+      "Bash(git:*)",
+      "Bash(npm:*)",
+      "Bash(node:*)",
+      "Write(./**)",
+      "Glob",
+      "Grep"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./secrets/**)",
+      "Read(./**/.env)",
+      "Bash(rm:-rf)",
+      "Bash(curl:*)",
+      "WebFetch"
+    ]
+  }
+}
