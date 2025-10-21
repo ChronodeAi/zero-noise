@@ -117,13 +117,13 @@ function ErrorContent() {
             href="/auth/claim"
             className="block w-full px-4 py-2 text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Get an Invite Code
+            Claim Invite Code
           </Link>
           <Link
             href="/auth/signin"
             className="block w-full px-4 py-2 text-center border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            Back to Sign In
+            Sign In
           </Link>
         </div>
         
