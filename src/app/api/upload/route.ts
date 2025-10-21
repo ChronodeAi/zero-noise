@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { randomUUID } from 'crypto'
 import { scrapeUrls } from '@/lib/urlScraper'
 import { extractTextFromFile, cleanTextForEmbedding } from '@/lib/textExtraction'
+import { auth } from '@/auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -18,6 +19,10 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(request: NextRequest) {
   try {
+    // Get user session for attribution
+    const session = await auth()
+    const userId = session?.user?.id || null
+    
     const formData = await request.formData()
     const files = formData.getAll('file') as File[]
     const urlsString = formData.get('urls') as string | null
@@ -161,6 +166,7 @@ export async function POST(request: NextRequest) {
         await prisma.collection.create({
           data: {
             id: collectionId,
+            createdBy: userId,
             files: {
               create: newFiles
                 .filter((file) => file.cid && file.size && file.type)
@@ -172,6 +178,7 @@ export async function POST(request: NextRequest) {
                   textContent: file.textContent,
                   indexed: !!file.textContent,
                   indexedAt: file.textContent ? new Date() : null,
+                  uploadedBy: userId,
                 })),
             },
             links: {
@@ -183,6 +190,7 @@ export async function POST(request: NextRequest) {
                 siteName: meta.siteName,
                 author: meta.author,
                 linkType: meta.linkType,
+                uploadedBy: userId,
               })),
             },
           },

@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { query, limit = 10 } = body
+    const { query, limit = 10, userId = null } = body
     
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
@@ -31,53 +31,105 @@ export async function POST(request: NextRequest) {
     
     if (usePatternMatch) {
       // Pattern matching for short queries
-      fileResults = await prisma.$queryRawUnsafe<any[]>(`
-        SELECT 
-          "File"."id",
-          "File"."cid",
-          "File"."filename" as name,
-          "File"."size",
-          "File"."mimeType" as type,
-          "File"."textContent",
-          "File"."collectionId",
-          "File"."uploadedAt" as created_at,
-          'file' as result_type,
-          CASE 
-            WHEN "File"."filename" ILIKE $1 THEN 1.0
-            WHEN "File"."textContent" ILIKE $1 THEN 0.5
-            ELSE 0.1
-          END as rank
-        FROM "File"
-        WHERE 
-          "File"."filename" ILIKE $1
-          OR "File"."textContent" ILIKE $1
-        ORDER BY rank DESC
-        LIMIT $2
-      `, `%${query}%`, limit)
+      if (userId) {
+        fileResults = await prisma.$queryRawUnsafe<any[]>(`
+          SELECT 
+            "File"."id",
+            "File"."cid",
+            "File"."filename" as name,
+            "File"."size",
+            "File"."mimeType" as type,
+            "File"."textContent",
+            "File"."collectionId",
+            "File"."uploadedAt" as created_at,
+            'file' as result_type,
+            CASE 
+              WHEN "File"."filename" ILIKE $1 THEN 1.0
+              WHEN "File"."textContent" ILIKE $1 THEN 0.5
+              ELSE 0.1
+            END as rank
+          FROM "File"
+          WHERE 
+            "File"."uploadedBy" = $3
+            AND ("File"."filename" ILIKE $1 OR "File"."textContent" ILIKE $1)
+          ORDER BY rank DESC
+          LIMIT $2
+        `, `%${query}%`, limit, userId)
+      } else {
+        fileResults = await prisma.$queryRawUnsafe<any[]>(`
+          SELECT 
+            "File"."id",
+            "File"."cid",
+            "File"."filename" as name,
+            "File"."size",
+            "File"."mimeType" as type,
+            "File"."textContent",
+            "File"."collectionId",
+            "File"."uploadedAt" as created_at,
+            'file' as result_type,
+            CASE 
+              WHEN "File"."filename" ILIKE $1 THEN 1.0
+              WHEN "File"."textContent" ILIKE $1 THEN 0.5
+              ELSE 0.1
+            END as rank
+          FROM "File"
+          WHERE 
+            "File"."filename" ILIKE $1
+            OR "File"."textContent" ILIKE $1
+          ORDER BY rank DESC
+          LIMIT $2
+        `, `%${query}%`, limit)
+      }
     } else {
       // Full-text search for longer queries
-      fileResults = await prisma.$queryRawUnsafe<any[]>(`
-        SELECT 
-          "File"."id",
-          "File"."cid",
-          "File"."filename" as name,
-          "File"."size",
-          "File"."mimeType" as type,
-          "File"."textContent",
-          "File"."collectionId",
-          "File"."uploadedAt" as created_at,
-          'file' as result_type,
-          ts_rank(
-            to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename"),
-            plainto_tsquery('english', $1)
-          ) as rank
-        FROM "File"
-        WHERE 
-          to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename")
-          @@ plainto_tsquery('english', $1)
-        ORDER BY rank DESC
-        LIMIT $2
-      `, query, limit)
+      if (userId) {
+        fileResults = await prisma.$queryRawUnsafe<any[]>(`
+          SELECT 
+            "File"."id",
+            "File"."cid",
+            "File"."filename" as name,
+            "File"."size",
+            "File"."mimeType" as type,
+            "File"."textContent",
+            "File"."collectionId",
+            "File"."uploadedAt" as created_at,
+            'file' as result_type,
+            ts_rank(
+              to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename"),
+              plainto_tsquery('english', $1)
+            ) as rank
+          FROM "File"
+          WHERE 
+            "File"."uploadedBy" = $3
+            AND to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename")
+            @@ plainto_tsquery('english', $1)
+          ORDER BY rank DESC
+          LIMIT $2
+        `, query, limit, userId)
+      } else {
+        fileResults = await prisma.$queryRawUnsafe<any[]>(`
+          SELECT 
+            "File"."id",
+            "File"."cid",
+            "File"."filename" as name,
+            "File"."size",
+            "File"."mimeType" as type,
+            "File"."textContent",
+            "File"."collectionId",
+            "File"."uploadedAt" as created_at,
+            'file' as result_type,
+            ts_rank(
+              to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename"),
+              plainto_tsquery('english', $1)
+            ) as rank
+          FROM "File"
+          WHERE 
+            to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename")
+            @@ plainto_tsquery('english', $1)
+          ORDER BY rank DESC
+          LIMIT $2
+        `, query, limit)
+      }
     }
     
     let linkResults: any[]

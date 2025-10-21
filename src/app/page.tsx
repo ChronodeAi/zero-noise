@@ -45,6 +45,7 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [showMyUploadsOnly, setShowMyUploadsOnly] = useState(false)
 
   // Handle invite code from URL (after email verification)
   useEffect(() => {
@@ -203,7 +204,11 @@ export default function Home() {
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: searchQuery, limit: 10 }),
+        body: JSON.stringify({ 
+          query: searchQuery, 
+          limit: 10,
+          userId: showMyUploadsOnly ? session?.user?.id : null
+        }),
       })
 
       const data = await response.json()
@@ -286,6 +291,17 @@ export default function Home() {
 
         {/* Search Bar */}
         <div className="mb-8">
+          <div className="max-w-2xl mx-auto mb-4 flex justify-end">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showMyUploadsOnly}
+                onChange={(e) => setShowMyUploadsOnly(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span>My uploads only</span>
+            </label>
+          </div>
           <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
             <div className="relative">
               <input
