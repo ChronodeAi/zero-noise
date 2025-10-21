@@ -4,9 +4,10 @@
   "description": "Decentralized P2P file sharing platform",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
+    "postinstall": "prisma generate",
     "spike:filebase": "node scripts/spike-filebase.js",
     "spike:storacha": "node scripts/spike-storacha.js",
     "spike:gateways": "node scripts/spike-gateways.js",
