@@ -95,10 +95,10 @@ function SignInContent() {
             {isLoading ? 'Sending...' : 'Send magic link'}
           </button>
           
-          <div className="text-center text-sm text-gray-500 space-y-2">
-            <p>New user?</p>
-            <Link href="/auth/claim" className="text-blue-600 hover:text-blue-800 underline">
-              Claim an invite code
+          <div className="text-center text-sm text-gray-500 space-y-1">
+            <p>Not whitelisted yet?</p>
+            <Link href="/auth/claim" className="text-blue-600 hover:text-blue-800 underline font-medium">
+              Claim your invite code here
             </Link>
           </div>
         </form>
