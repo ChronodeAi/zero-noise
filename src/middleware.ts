@@ -15,8 +15,8 @@ export default auth((req) => {
     return NextResponse.redirect(new URL('/auth/signin', req.url))
   }
 
-  // Logged in but not whitelisted - allow error page and verify-claim page
-  if (isLoggedIn && !isWhitelisted && !req.nextUrl.pathname.startsWith('/auth/error') && !isVerifyClaimPage) {
+  // Logged in but not whitelisted - allow auth pages (signin, claim, error, verify-claim)
+  if (isLoggedIn && !isWhitelisted && !isAuthPage) {
     return NextResponse.redirect(new URL('/auth/error?error=NotWhitelisted', req.url))
   }
 
