@@ -47,3 +47,43 @@ export async function PATCH(
     )
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth()
+    
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      )
+    }
+
+    const { id } = await params
+
+    // Prevent self-deletion
+    if (id === session.user.id) {
+      return NextResponse.json(
+        { error: 'Cannot delete your own account' },
+        { status: 400 }
+      )
+    }
+
+    // Delete user and all related data
+    await prisma.user.delete({
+      where: { id }
+    })
+
+    return NextResponse.json({ success: true })
+
+  } catch (error) {
+    console.error('Delete user error:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete user' },
+      { status: 500 }
+    )
+  }
+}

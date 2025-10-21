@@ -59,11 +59,15 @@ export function Navigation() {
             <Link
               href={`/u/${session.user.id}`}
               className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-200 hover:border-blue-300 transition-colors"
+              title={`${getLevelFromXP(session.user.xp).name} - ${session.user.xp} XP`}
             >
-              <span className="text-lg">{getLevelFromXP(session.user.xp).icon}</span>
-              <span className="text-blue-600 font-semibold text-sm">
-                {session.user.xp} XP
-              </span>
+              <span className="text-xl">{getLevelFromXP(session.user.xp).icon}</span>
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-600 leading-none">{getLevelFromXP(session.user.xp).name}</span>
+                <span className="text-blue-600 font-semibold text-sm leading-none">
+                  {session.user.xp} XP
+                </span>
+              </div>
             </Link>
 
             {/* User Menu */}

@@ -40,6 +40,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState<string | null>(null)
   const [updatingUser, setUpdatingUser] = useState<string | null>(null)
+  const [deletingUser, setDeletingUser] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -126,6 +127,31 @@ export default function AdminPage() {
       console.error('Failed to toggle whitelist:', error)
     } finally {
       setUpdatingUser(null)
+    }
+  }
+
+  async function deleteUser(userId: string, userEmail: string) {
+    if (!confirm(`Are you sure you want to permanently delete ${userEmail}? This cannot be undone.`)) {
+      return
+    }
+
+    setDeletingUser(userId)
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        await fetchUsers()
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to delete user')
+      }
+    } catch (error) {
+      console.error('Failed to delete user:', error)
+      alert('Failed to delete user')
+    } finally {
+      setDeletingUser(null)
     }
   }
 
@@ -309,13 +335,24 @@ export default function AdminPage() {
                           {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
                         </td>
                         <td className="px-6 py-4">
-                          <button
-                            onClick={() => toggleWhitelist(user.id, user.isWhitelisted)}
-                            disabled={updatingUser === user.id}
-                            className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
-                          >
-                            {updatingUser === user.id ? 'Updating...' : user.isWhitelisted ? 'Remove' : 'Whitelist'}
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => toggleWhitelist(user.id, user.isWhitelisted)}
+                              disabled={updatingUser === user.id || deletingUser === user.id}
+                              className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
+                            >
+                              {updatingUser === user.id ? 'Updating...' : user.isWhitelisted ? 'Unwhitelist' : 'Whitelist'}
+                            </button>
+                            {session.user.id !== user.id && (
+                              <button
+                                onClick={() => deleteUser(user.id, user.email)}
+                                disabled={deletingUser === user.id || updatingUser === user.id}
+                                className="text-sm text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                              >
+                                {deletingUser === user.id ? 'Deleting...' : 'Delete'}
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
