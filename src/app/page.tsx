@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import UploadZone from '@/components/UploadZone'
+import { Navigation } from '@/components/navigation'
 
 interface UploadedFile {
   name: string
@@ -242,7 +243,9 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen p-8 md:p-24">
+    <>
+      <Navigation />
+      <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -580,5 +583,6 @@ https://twitter.com/user/status/..."
         )}
       </div>
     </main>
+    </>
   )
 }
