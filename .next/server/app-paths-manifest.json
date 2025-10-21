@@ -1,6 +1,6 @@
 {
-  "/api/upload/route": "app/api/upload/route.js",
-  "/api/collection/[id]/route": "app/api/collection/[id]/route.js",
-  "/page": "app/page.js",
-  "/c/[id]/page": "app/c/[id]/page.js"
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/auth/signin/page": "app/auth/signin/page.js",
+  "/auth/error/page": "app/auth/error/page.js",
+  "/page": "app/page.js"
 }

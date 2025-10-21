@@ -11,20 +11,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
-    "/api/upload/route": [
+    "/auth/signin/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/upload/route.js"
+      "static/chunks/app/auth/signin/page.js"
     ],
-    "/c/[id]/page": [
+    "/api/auth/[...nextauth]/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/c/[id]/page.js"
+      "static/chunks/app/api/auth/[...nextauth]/route.js"
     ],
-    "/api/collection/[id]/route": [
+    "/auth/error/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/collection/[id]/route.js"
+      "static/chunks/app/auth/error/page.js"
     ]
   }
 }
