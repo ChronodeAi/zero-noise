@@ -74,7 +74,7 @@ function ErrorContent() {
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-6 p-8 bg-white rounded-lg shadow-md">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
         <div className="text-center">
           <div className="text-6xl mb-4">🚫</div>
           <h1 className="text-2xl font-bold mb-2">{errorInfo.title}</h1>
@@ -114,17 +114,23 @@ function ErrorContent() {
         
         <div className="space-y-3">
           <Link
+            href="/auth/claim"
+            className="block w-full px-4 py-2 text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Get an Invite Code
+          </Link>
+          <Link
             href="/auth/signin"
             className="block w-full px-4 py-2 text-center border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            Sign In Again
+            Back to Sign In
           </Link>
         </div>
         
         {(error === 'NotWhitelisted' || error === 'AccessDenied') && (
           <div className="text-sm text-gray-500 text-center p-4 bg-gray-50 rounded-lg">
             <p className="font-medium mb-1">Need access?</p>
-            <p>Ask an existing user for an invite code or request whitelist approval from an admin.</p>
+            <p>Get an invite code from an existing user or request admin approval.</p>
           </div>
         )}
       </div>
