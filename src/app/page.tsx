@@ -211,6 +211,36 @@ export default function Home() {
     })
   }
 
+  const exportLinksAsCSV = () => {
+    const linkResults = searchResults.filter(r => r.resultType === 'link')
+    if (linkResults.length === 0) return
+
+    // Create CSV content
+    const headers = ['Title', 'URL', 'Type', 'Description']
+    const rows = linkResults.map(link => [
+      link.filename.replace(/"/g, '""'), // Escape quotes
+      link.cid.replace(/"/g, '""'),
+      link.mimeType,
+      (link.snippet || '').replace(/"/g, '""')
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n')
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `zero-noise-links-${Date.now()}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <main className="min-h-screen p-8 md:p-24">
       <div className="max-w-4xl mx-auto">
@@ -249,14 +279,24 @@ export default function Home() {
           <div className="mb-8 bg-white rounded-lg shadow-md p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-semibold">🔍 Search Results ({searchResults.length})</h2>
-              {searchResults.filter(r => r.resultType === 'file').length > 1 && (
-                <button
-                  onClick={downloadAllSearchResults}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                >
-                  ⬇️ Download All Files
-                </button>
-              )}
+              <div className="flex gap-2">
+                {searchResults.filter(r => r.resultType === 'file').length > 1 && (
+                  <button
+                    onClick={downloadAllSearchResults}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                  >
+                    ⬇️ Download All Files
+                  </button>
+                )}
+                {searchResults.filter(r => r.resultType === 'link').length > 0 && (
+                  <button
+                    onClick={exportLinksAsCSV}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                  >
+                    📊 Export Links as CSV
+                  </button>
+                )}
+              </div>
             </div>
             <div className="space-y-3">
               {searchResults.map((result) => (
@@ -285,7 +325,7 @@ export default function Home() {
                       )}
                     </a>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      {result.resultType === 'file' && (
+                      {result.resultType === 'file' ? (
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
@@ -295,6 +335,16 @@ export default function Home() {
                         >
                           ⬇️ Download
                         </button>
+                      ) : (
+                        <a
+                          href={result.cid}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                        >
+                          🔗 Open Link
+                        </a>
                       )}
                       <div className="text-right">
                         <div className="text-xs text-gray-500">Relevance</div>
