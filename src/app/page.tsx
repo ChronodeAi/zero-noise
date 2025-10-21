@@ -7,17 +7,31 @@ export default function Home() {
   const [uploadedFiles, setUploadedFiles] = useState<Array<{ name: string; size: number }>>([])
 
   const handleFilesSelected = async (files: File[]) => {
-    // TODO: Implement actual upload logic in Story 4
-    // For now, just simulate upload delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    
-    // Store file metadata
-    const fileData = files.map((file) => ({
-      name: file.name,
-      size: file.size,
-    }))
-    
-    setUploadedFiles((prev) => [...prev, ...fileData])
+    // Story 3: Call /api/upload with server-side validation
+    const formData = new FormData()
+    files.forEach((file) => formData.append('file', file))
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Upload failed')
+    }
+
+    // Store successful uploads
+    const successfulUploads = data.results
+      .filter((r: any) => r.success)
+      .map((r: any) => ({
+        name: r.filename,
+        size: r.size,
+        cid: r.cid,
+      }))
+
+    setUploadedFiles((prev) => [...prev, ...successfulUploads])
   }
 
   return (
