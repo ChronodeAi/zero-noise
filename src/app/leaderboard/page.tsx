@@ -15,9 +15,9 @@ export default async function LeaderboardPage() {
       isAdmin: true,
       _count: {
         select: {
-          uploadedFiles: true,
-          uploadedLinks: true,
-          createdCollections: true,
+          files: true,
+          links: true,
+          collections: true,
         }
       }
     }
@@ -132,13 +132,13 @@ export default async function LeaderboardPage() {
                         <span className="text-lg font-bold text-blue-600">{user.xp}</span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className="text-gray-700">{user._count.uploadedFiles}</span>
+                        <span className="text-gray-700">{user._count.files}</span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className="text-gray-700">{user._count.uploadedLinks}</span>
+                        <span className="text-gray-700">{user._count.links}</span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className="text-gray-700">{user._count.createdCollections}</span>
+                        <span className="text-gray-700">{user._count.collections}</span>
                       </td>
                     </tr>
                   )

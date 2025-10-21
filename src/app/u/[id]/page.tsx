@@ -25,9 +25,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       lastLoginAt: true,
       _count: {
         select: {
-          uploadedFiles: true,
-          uploadedLinks: true,
-          createdCollections: true,
+          files: true,
+          links: true,
+          collections: true,
         }
       }
     }
@@ -50,7 +50,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   // Get recent activity (last 10 uploads)
   const recentUploads = await prisma.file.findMany({
-    where: { uploadedBy: id },
+    where: { userId: id },
     orderBy: { createdAt: 'desc' },
     take: 10,
     select: {
@@ -64,7 +64,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   })
 
   const recentLinks = await prisma.link.findMany({
-    where: { uploadedBy: id },
+    where: { userId: id },
     orderBy: { createdAt: 'desc' },
     take: 10,
     select: {
@@ -91,7 +91,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     }))
   ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 10)
 
-  const totalContributions = user._count.uploadedFiles + user._count.uploadedLinks
+  const totalContributions = user._count.files + user._count.links
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -161,21 +161,21 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="text-center">
               <div className="text-4xl mb-2">📄</div>
-              <p className="text-3xl font-bold text-blue-600">{user._count.uploadedFiles}</p>
+              <p className="text-3xl font-bold text-blue-600">{user._count.files}</p>
               <p className="text-gray-600">Files Uploaded</p>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="text-center">
               <div className="text-4xl mb-2">🔗</div>
-              <p className="text-3xl font-bold text-purple-600">{user._count.uploadedLinks}</p>
+              <p className="text-3xl font-bold text-purple-600">{user._count.links}</p>
               <p className="text-gray-600">Links Saved</p>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="text-center">
               <div className="text-4xl mb-2">📦</div>
-              <p className="text-3xl font-bold text-green-600">{user._count.createdCollections}</p>
+              <p className="text-3xl font-bold text-green-600">{user._count.collections}</p>
               <p className="text-gray-600">Collections</p>
             </div>
           </div>
