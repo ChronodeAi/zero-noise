@@ -50,7 +50,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   // Get recent activity (last 10 uploads)
   const recentUploads = await prisma.file.findMany({
-    where: { userId: id },
+    where: { createdBy: id },
     orderBy: { createdAt: 'desc' },
     take: 10,
     select: {
@@ -64,7 +64,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   })
 
   const recentLinks = await prisma.link.findMany({
-    where: { userId: id },
+    where: { createdBy: id },
     orderBy: { createdAt: 'desc' },
     take: 10,
     select: {
