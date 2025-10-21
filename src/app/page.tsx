@@ -187,6 +187,30 @@ export default function Home() {
     }
   }
 
+  const getFilebaseGatewayUrl = (cid: string) => {
+    return `https://ipfs.filebase.io/ipfs/${cid}`
+  }
+
+  const downloadFile = (cid: string, filename: string) => {
+    const url = getFilebaseGatewayUrl(cid)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.target = '_blank'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+
+  const downloadAllSearchResults = () => {
+    const fileResults = searchResults.filter(r => r.resultType === 'file')
+    fileResults.forEach((result, index) => {
+      setTimeout(() => {
+        downloadFile(result.cid, result.filename)
+      }, index * 500) // Stagger downloads by 500ms
+    })
+  }
+
   return (
     <main className="min-h-screen p-8 md:p-24">
       <div className="max-w-4xl mx-auto">
@@ -223,16 +247,28 @@ export default function Home() {
         {/* Search Results */}
         {searchResults.length > 0 && (
           <div className="mb-8 bg-white rounded-lg shadow-md p-6 border border-gray-200">
-            <h2 className="text-2xl font-semibold mb-4">🔍 Search Results ({searchResults.length})</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-semibold">🔍 Search Results ({searchResults.length})</h2>
+              {searchResults.filter(r => r.resultType === 'file').length > 1 && (
+                <button
+                  onClick={downloadAllSearchResults}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                >
+                  ⬇️ Download All Files
+                </button>
+              )}
+            </div>
             <div className="space-y-3">
               {searchResults.map((result) => (
-                <a
+                <div
                   key={result.id}
-                  href={`/c/${result.collectionId}`}
-                  className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="p-4 bg-gray-50 rounded-lg"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
+                    <a
+                      href={`/c/${result.collectionId}`}
+                      className="flex-1 min-w-0 hover:text-blue-600 transition-colors"
+                    >
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-lg">{result.filename}</h3>
                         <span className="text-xs px-2 py-1 rounded-full bg-gray-200 text-gray-700">
@@ -247,15 +283,28 @@ export default function Home() {
                           {result.snippet}...
                         </p>
                       )}
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-sm text-gray-500">Relevance</div>
-                      <div className="text-lg font-semibold text-blue-600">
-                        {(result.rank * 100).toFixed(0)}%
+                    </a>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {result.resultType === 'file' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            downloadFile(result.cid, result.filename)
+                          }}
+                          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
+                          ⬇️ Download
+                        </button>
+                      )}
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500">Relevance</div>
+                        <div className="text-lg font-semibold text-blue-600">
+                          {(result.rank * 100).toFixed(0)}%
+                        </div>
                       </div>
                     </div>
                   </div>
-                </a>
+                </div>
               ))}
             </div>
           </div>
