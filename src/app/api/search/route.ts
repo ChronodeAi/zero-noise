@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { generateEmbedding } from '@/lib/openai'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
  * POST /api/search
- * Semantic search across files using vector similarity
+ * Full-text search across files using PostgreSQL
  * 
- * Story 3: Semantic Search Infrastructure
+ * Story 3: Search Infrastructure
  */
 export async function POST(request: NextRequest) {
   try {
@@ -23,14 +22,8 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Generate embedding for search query
-    const queryEmbedding = await generateEmbedding(query)
-    
-    // Convert embedding array to pgvector format string
-    const embeddingString = `[${queryEmbedding.join(',')}]`
-    
-    // Perform vector similarity search using raw SQL
-    // Using cosine distance (1 - cosine similarity)
+    // Perform full-text search using PostgreSQL
+    // Search in filename and textContent
     const results = await prisma.$queryRawUnsafe<any[]>(`
       SELECT 
         "File"."id",
@@ -41,12 +34,17 @@ export async function POST(request: NextRequest) {
         "File"."textContent",
         "File"."collectionId",
         "File"."uploadedAt",
-        1 - (embedding <=> $1::vector) as similarity
+        ts_rank(
+          to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename"),
+          plainto_tsquery('english', $1)
+        ) as rank
       FROM "File"
-      WHERE embedding IS NOT NULL
-      ORDER BY embedding <=> $1::vector
+      WHERE 
+        to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename")
+        @@ plainto_tsquery('english', $1)
+      ORDER BY rank DESC
       LIMIT $2
-    `, embeddingString, limit)
+    `, query, limit)
     
     // Format results
     const formattedResults = results.map((result) => ({
@@ -57,7 +55,7 @@ export async function POST(request: NextRequest) {
       mimeType: result.mimeType,
       collectionId: result.collectionId,
       uploadedAt: result.uploadedAt,
-      similarity: parseFloat(result.similarity),
+      rank: parseFloat(result.rank),
       snippet: result.textContent?.substring(0, 200) || '',
     }))
     
@@ -91,8 +89,8 @@ export async function GET() {
   
   return NextResponse.json({
     status: 'ok',
-    message: 'Semantic search API ready',
+    message: 'Full-text search API ready',
     indexedFiles: indexedCount,
-    model: 'text-embedding-3-small (1536 dimensions)',
+    searchEngine: 'PostgreSQL tsvector',
   })
 }
