@@ -1,5 +1,3 @@
-import pdfParse from 'pdf-parse'
-
 /**
  * Extract text content from file buffer based on MIME type
  * Only extracts first 2000 chars for search preview
@@ -25,6 +23,8 @@ export async function extractTextFromFile(
     
     // PDF files - extract first page worth of text
     if (mimeType === 'application/pdf') {
+      // Dynamic import for CommonJS module
+      const pdfParse = (await import('pdf-parse')).default
       const data = await pdfParse(buffer, { max: 1 }) // Just first page
       return data.text.substring(0, 2000)
     }
