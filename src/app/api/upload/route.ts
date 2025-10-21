@@ -4,6 +4,7 @@ import { uploadToFilebase, getFilebaseGatewayUrl, getPublicGatewayUrls } from '@
 import { prisma } from '@/lib/prisma'
 import { randomUUID } from 'crypto'
 import { scrapeUrls } from '@/lib/urlScraper'
+import { extractTextFromFile, cleanTextForEmbedding } from '@/lib/textExtraction'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -73,6 +74,18 @@ export async function POST(request: NextRequest) {
             }
           }
 
+          // Extract text content for search indexing
+          let textContent: string | null = null
+          try {
+            const extracted = await extractTextFromFile(buffer, file.type)
+            if (extracted) {
+              textContent = cleanTextForEmbedding(extracted)
+            }
+          } catch (error) {
+            console.error('Text extraction failed:', error)
+            // Non-critical, continue without text content
+          }
+
           // Success! File uploaded to IPFS
           return {
             filename: file.name,
@@ -86,6 +99,7 @@ export async function POST(request: NextRequest) {
             fallbackUrls: getPublicGatewayUrls(uploadResult.cid!),
             message: 'Successfully uploaded to Filebase IPFS',
             collectionId, // Include collection ID in response
+            textContent, // Include extracted text
           }
         } catch (error) {
           return {
@@ -138,6 +152,9 @@ export async function POST(request: NextRequest) {
                   filename: file.sanitizedFilename || file.filename,
                   size: file.size!,
                   mimeType: file.type!,
+                  textContent: file.textContent,
+                  indexed: !!file.textContent,
+                  indexedAt: file.textContent ? new Date() : null,
                 })),
             },
             links: {

@@ -1,8 +1,8 @@
 {
   "version": 1,
   "functions": {
-    "/api/collection/[id]": {},
     "/api/scrape-url": {},
+    "/api/collection/[id]": {},
     "/api/search": {},
     "/api/upload": {}
   }
