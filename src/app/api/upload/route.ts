@@ -202,21 +202,22 @@ export async function POST(request: NextRequest) {
           console.log(`Skipped ${existingCids.size} duplicate file(s) (already in database)`)
         }
 
-        // Award XP to user for uploads
+        // Award XP to user for uploads (files and links only)
         if (userId) {
           const fileXP = newFiles.length * XP_REWARDS.FILE_UPLOAD
           const linkXP = urlMetadata.length * XP_REWARDS.LINK_SAVE
-          const collectionXP = XP_REWARDS.COLLECTION_CREATE
-          const totalXP = fileXP + linkXP + collectionXP
+          const totalXP = fileXP + linkXP
 
-          try {
-            await prisma.user.update({
-              where: { id: userId },
-              data: { xp: { increment: totalXP } }
-            })
-            console.log(`Awarded ${totalXP} XP to user ${userId} (${newFiles.length} files, ${urlMetadata.length} links)`)
-          } catch (xpError) {
-            console.error('Failed to award XP:', xpError)
+          if (totalXP > 0) {
+            try {
+              await prisma.user.update({
+                where: { id: userId },
+                data: { xp: { increment: totalXP } }
+              })
+              console.log(`Awarded ${totalXP} XP to user ${userId} (${newFiles.length} files, ${urlMetadata.length} links)`)
+            } catch (xpError) {
+              console.error('Failed to award XP:', xpError)
+            }
           }
         }
       } catch (dbError) {
