@@ -116,7 +116,6 @@ export default async function ProfilePage() {
                 <span className="text-3xl">{levelInfo.icon}</span>
                 <div>
                   <h2 className="text-2xl font-bold">{levelInfo.name}</h2>
-                  <p className="text-sm text-gray-600">Level {levelInfo.level}</p>
                 </div>
               </div>
               <div className="text-right">
