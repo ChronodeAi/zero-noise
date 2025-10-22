@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import UploadZone from '@/components/UploadZone'
 import { Navigation } from '@/components/navigation'
+import toast, { Toaster } from 'react-hot-toast'
 
 interface UploadedFile {
   name: string
@@ -33,7 +34,7 @@ interface SearchResult {
 }
 
 function HomeContent() {
-  const { data: session } = useSession()
+  const { data: session, update } = useSession()
   const searchParams = useSearchParams()
   const [stagedFiles, setStagedFiles] = useState<File[]>([])
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
@@ -175,9 +176,25 @@ function HomeContent() {
       // Clear staged files and URLs
       setStagedFiles([])
       setUrls('')
+
+      // Refresh session to update XP in header
+      if (session?.user) {
+        await update()
+      }
+
+      // Show success toast with XP earned
+      const filesUploaded = successfulUploads.length
+      const linksAdded = urlMetadata.length
+      const xpEarned = (filesUploaded * 10) + (linksAdded * 5)
+      if (xpEarned > 0) {
+        toast.success(`+${xpEarned} XP earned! (${filesUploaded} files, ${linksAdded} links)`, {
+          duration: 4000,
+          icon: '🎉',
+        })
+      }
     } catch (error) {
       console.error('Save failed:', error)
-      alert('Failed to save: ' + (error instanceof Error ? error.message : 'Unknown error'))
+      toast.error('Failed to save: ' + (error instanceof Error ? error.message : 'Unknown error'))
     } finally {
       setUploading(false)
     }
@@ -278,6 +295,7 @@ function HomeContent() {
 
   return (
     <>
+      <Toaster position="top-right" />
       <Navigation />
       <main className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto">
