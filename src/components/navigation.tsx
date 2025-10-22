@@ -57,7 +57,7 @@ export function Navigation() {
           <div className="flex items-center gap-4">
             {/* Level & XP Badge */}
             <Link
-              href={`/u/${session.user.id}`}
+              href="/profile"
               className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-200 hover:border-blue-300 transition-colors"
               title={`${getLevelFromXP(session.user.xp).name} - ${session.user.xp} XP`}
             >
@@ -73,7 +73,7 @@ export function Navigation() {
             {/* User Menu */}
             <div className="flex items-center gap-3">
               <Link
-                href={`/u/${session.user.id}`}
+                href="/profile"
                 className="text-right hidden sm:block hover:opacity-80 transition-opacity"
               >
                 <p className="text-sm font-medium text-gray-900">
