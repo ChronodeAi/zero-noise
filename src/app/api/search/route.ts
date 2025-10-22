@@ -118,17 +118,25 @@ export async function POST(request: NextRequest) {
             "File"."collectionId",
             "File"."uploadedAt" as created_at,
             'file' as result_type,
-            ts_rank(
-              to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename"),
-              plainto_tsquery('english', $1)
-            ) as rank
+            CASE
+              WHEN to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename")
+                   @@ plainto_tsquery('english', $1) THEN
+                ts_rank(
+                  to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename"),
+                  plainto_tsquery('english', $1)
+                )
+              WHEN "File"."filename" ILIKE $3 OR "File"."textContent" ILIKE $3 THEN 0.3
+              ELSE 0.0
+            END as rank
           FROM "File"
           WHERE 
             to_tsvector('english', COALESCE("File"."textContent", '') || ' ' || "File"."filename")
             @@ plainto_tsquery('english', $1)
+            OR "File"."filename" ILIKE $3
+            OR "File"."textContent" ILIKE $3
           ORDER BY rank DESC
           LIMIT $2
-        `, query, limit)
+        `, query, limit, `%${query}%`)
       }
     }
     
@@ -176,17 +184,26 @@ export async function POST(request: NextRequest) {
           "Link"."collectionId",
           "Link"."createdAt" as created_at,
           'link' as result_type,
-          ts_rank(
-            to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."author", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url"),
-            plainto_tsquery('english', $1)
-          ) as rank
+          CASE
+            WHEN to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."author", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url")
+                 @@ plainto_tsquery('english', $1) THEN
+              ts_rank(
+                to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."author", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url"),
+                plainto_tsquery('english', $1)
+              )
+            WHEN "Link"."url" ILIKE $3 OR "Link"."title" ILIKE $3 OR "Link"."author" ILIKE $3 THEN 0.3
+            ELSE 0.0
+          END as rank
         FROM "Link"
         WHERE 
           to_tsvector('english', COALESCE("Link"."title", '') || ' ' || COALESCE("Link"."author", '') || ' ' || COALESCE("Link"."description", '') || ' ' || "Link"."url")
           @@ plainto_tsquery('english', $1)
+          OR "Link"."url" ILIKE $3
+          OR "Link"."title" ILIKE $3
+          OR "Link"."author" ILIKE $3
         ORDER BY rank DESC
         LIMIT $2
-      `, query, limit)
+      `, query, limit, `%${query}%`)
     }
     
     // Combine and sort results
