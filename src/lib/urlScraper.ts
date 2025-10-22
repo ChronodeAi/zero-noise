@@ -22,6 +22,9 @@ export async function scrapeUrl(url: string): Promise<UrlMetadata> {
   // Detect link type
   const linkType = detectLinkType(normalizedUrl)
   
+  // Extract GitHub username/repo if applicable
+  const githubInfo = extractGitHubInfo(normalizedUrl)
+  
   try {
     // Try oEmbed first for video platforms (YouTube, Vimeo, etc.)
     if (linkType === 'video') {
@@ -50,7 +53,7 @@ export async function scrapeUrl(url: string): Promise<UrlMetadata> {
       description: result.ogDescription || result.twitterDescription,
       imageUrl: result.ogImage?.[0]?.url || result.twitterImage?.[0]?.url,
       siteName: result.ogSiteName,
-      author: result.ogArticleAuthor || result.twitterCreator,
+      author: result.ogArticleAuthor || result.twitterCreator || githubInfo,
       linkType,
     }
   } catch (error) {
@@ -133,6 +136,29 @@ function detectLinkType(url: string): 'article' | 'video' | 'social' | 'generic'
   }
   
   return 'generic'
+}
+
+/**
+ * Extract GitHub username and repo name from URL
+ */
+function extractGitHubInfo(url: string): string | undefined {
+  try {
+    const urlObj = new URL(url)
+    if (urlObj.hostname === 'github.com') {
+      // Extract username and repo from path like /username/repo
+      const pathParts = urlObj.pathname.split('/').filter(Boolean)
+      if (pathParts.length >= 2) {
+        return `${pathParts[0]}/${pathParts[1]}`
+      }
+      // Just username
+      if (pathParts.length === 1) {
+        return pathParts[0]
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return undefined
 }
 
 /**
