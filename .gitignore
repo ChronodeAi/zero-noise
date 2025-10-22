@@ -9,3 +9,4 @@ coverage/
 .claude/settings.local.json
 
 /src/generated/prisma
+__warp_internal_todo_list__.json
