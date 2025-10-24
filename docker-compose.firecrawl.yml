@@ -1,0 +1,68 @@
+name: firecrawl
+
+x-common-service: &common-service
+  image: ghcr.io/firecrawl/firecrawl:latest
+  ulimits:
+    nofile:
+      soft: 65535
+      hard: 65535
+  networks:
+    - firecrawl-backend
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+x-common-env: &common-env
+  REDIS_URL: ${FIRECRAWL_REDIS_URL:-redis://redis:6379}
+  REDIS_RATE_LIMIT_URL: ${FIRECRAWL_REDIS_URL:-redis://redis:6379}
+  PLAYWRIGHT_MICROSERVICE_URL: ${PLAYWRIGHT_MICROSERVICE_URL:-http://playwright-service:3000/scrape}
+  USE_DB_AUTHENTICATION: ${FIRECRAWL_USE_DB_AUTHENTICATION:-false}
+  OPENAI_API_KEY: ${OPENAI_API_KEY}
+  OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+  MODEL_NAME: ${MODEL_NAME}
+  MODEL_EMBEDDING_NAME: ${MODEL_EMBEDDING_NAME}
+  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
+  BULL_AUTH_KEY: ${FIRECRAWL_BULL_AUTH_KEY}
+  TEST_API_KEY: ${FIRECRAWL_TEST_API_KEY}
+  LOGGING_LEVEL: ${FIRECRAWL_LOGGING_LEVEL:-info}
+  PROXY_SERVER: ${PROXY_SERVER}
+  PROXY_USERNAME: ${PROXY_USERNAME}
+  PROXY_PASSWORD: ${PROXY_PASSWORD}
+
+services:
+  playwright-service:
+    image: ghcr.io/firecrawl/playwright-service:latest
+    environment:
+      PORT: 3000
+      PROXY_SERVER: ${PROXY_SERVER}
+      PROXY_USERNAME: ${PROXY_USERNAME}
+      PROXY_PASSWORD: ${PROXY_PASSWORD}
+      BLOCK_MEDIA: ${BLOCK_MEDIA:-true}
+    networks:
+      - firecrawl-backend
+
+  firecrawl-api:
+    <<: *common-service
+    container_name: firecrawl-api
+    environment:
+      <<: *common-env
+      HOST: "0.0.0.0"
+      PORT: ${FIRECRAWL_INTERNAL_PORT:-3002}
+      ENV: production
+    depends_on:
+      - firecrawl-redis
+      - playwright-service
+    ports:
+      - "${FIRECRAWL_PORT:-3002}:${FIRECRAWL_INTERNAL_PORT:-3002}"
+    restart: unless-stopped
+
+  firecrawl-redis:
+    image: redis:alpine
+    container_name: firecrawl-redis
+    networks:
+      - firecrawl-backend
+    command: redis-server --bind 0.0.0.0
+    restart: unless-stopped
+
+networks:
+  firecrawl-backend:
+    driver: bridge

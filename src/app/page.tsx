@@ -184,7 +184,7 @@ function HomeContent() {
 
       // Show success toast with XP earned
       const filesUploaded = successfulUploads.length
-      const linksAdded = urlMetadata.length
+      const linksAdded = data.urls?.length || 0
       const xpEarned = (filesUploaded * 10) + (linksAdded * 5)
       if (xpEarned > 0) {
         toast.success(`+${xpEarned} XP earned! (${filesUploaded} files, ${linksAdded} links)`, {

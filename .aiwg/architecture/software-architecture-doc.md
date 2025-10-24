@@ -278,7 +278,10 @@ export async function POST(request: Request) {
 export async function POST(request: Request) {
   const { url } = await request.json();
   
-  // Scrape metadata (YouTube API, OpenGraph, Readability)
+  // Multi-layer scraping strategy (ADR-006)
+  // 1. Try Firecrawl (JS rendering, handles SPAs)
+  // 2. Fallback to OpenGraph + oEmbed
+  // 3. Final fallback to heuristic from URL
   const metadata = await scrapeURL(url);
   
   return Response.json({
@@ -381,6 +384,148 @@ async function pinToStoracha(files: File[], cids: string[]): Promise<void> {
 - **Combined free tier**: ~10GB+ (Filebase 5GB + Storacha free)
 - **No vendor lock-in**: Content accessible via any IPFS gateway
 - **Async secondary**: No upload latency impact (fire-and-forget)
+
+### 5.4 URL Metadata Extraction Service
+
+**Decision**: ADR-006 (Firecrawl for Robust Metadata Extraction)
+
+**Problem**: OpenGraph scraping fails on SPA sites with generic titles ("Home"), JS-rendered content, and anti-bot protection.
+
+**Solution**: Multi-layer scraping strategy with Firecrawl (self-hosted) as primary, fallback to OpenGraph/oEmbed.
+
+**Architecture**:
+```typescript
+// src/lib/urlScraper.ts
+import ogs from 'open-graph-scraper';
+import { extract as oembedExtract } from 'oembed-parser';
+
+export interface UrlMetadata {
+  url: string;
+  displayTitle: string;      // User-facing (prefers site_name for generic titles)
+  originalTitle?: string;     // Raw scraped title (for search)
+  description?: string;
+  imageUrl?: string;
+  siteName?: string;
+  author?: string;
+  linkType: 'article' | 'video' | 'social' | 'generic';
+  scrapedBy: 'firecrawl' | 'ogs' | 'fallback';  // Observability
+}
+
+export async function scrapeUrl(url: string): Promise<UrlMetadata> {
+  const linkType = detectLinkType(url);
+  
+  // 1. Try Firecrawl (JS rendering, handles SPAs)
+  if (process.env.ENABLE_FIRECRAWL === 'true') {
+    try {
+      const firecrawlData = await scrapeWithFirecrawl(url);
+      return {
+        ...firecrawlData,
+        displayTitle: getDisplayTitle(firecrawlData.title, firecrawlData.siteName),
+        originalTitle: firecrawlData.title,
+        scrapedBy: 'firecrawl',
+      };
+    } catch (err) {
+      console.warn('Firecrawl failed, falling back to ogs:', err);
+    }
+  }
+  
+  // 2. Fallback to OpenGraph + oEmbed
+  try {
+    const { result } = await ogs({ url });
+    return {
+      url,
+      displayTitle: getDisplayTitle(result.ogTitle, result.ogSiteName),
+      originalTitle: result.ogTitle,
+      description: result.ogDescription,
+      imageUrl: result.ogImage?.[0]?.url,
+      siteName: result.ogSiteName,
+      linkType,
+      scrapedBy: 'ogs',
+    };
+  } catch (error) {
+    // 3. Final fallback to heuristic from URL
+    return {
+      url,
+      displayTitle: extractTitleFromUrl(url),
+      linkType,
+      scrapedBy: 'fallback',
+    };
+  }
+}
+
+// Prefer site_name when title is generic ("Home", "Welcome")
+function getDisplayTitle(title?: string, siteName?: string): string {
+  const genericTitles = ['home', 'welcome', 'index', 'homepage', 'main page'];
+  if (title && genericTitles.includes(title.toLowerCase().trim())) {
+    return siteName || title;
+  }
+  return title || siteName || 'Untitled';
+}
+
+// Firecrawl integration (self-hosted)
+async function scrapeWithFirecrawl(url: string): Promise<Partial<UrlMetadata>> {
+  const response = await fetch(
+    `${process.env.FIRECRAWL_BASE_URL}/v1/scrape`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.FIRECRAWL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url }),
+      signal: AbortSignal.timeout(5000), // Circuit breaker timeout
+    }
+  );
+  
+  if (!response.ok) throw new Error(`Firecrawl failed: ${response.status}`);
+  
+  const data = await response.json();
+  return {
+    title: data.metadata?.title,
+    description: data.metadata?.description,
+    imageUrl: data.metadata?.ogImage,
+    siteName: data.metadata?.siteName,
+  };
+}
+```
+
+**Self-Hosting** (Docker Compose):
+```yaml
+# docker-compose.firecrawl.yml
+services:
+  firecrawl:
+    image: firecrawl/firecrawl:latest
+    ports: ["3002:3002"]
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+    volumes:
+      - playwright-cache:/ms-playwright
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+```
+
+**Security** (ADR-006 Section 5):
+- SSRF protection: Validate URLs, block internal IPs (RFC1918, link-local)
+- Network isolation: Firecrawl in isolated subnet
+- Secrets: `FIRECRAWL_API_KEY` in vault (90-day rotation)
+- Resource limits: CPU/memory caps to prevent DoS
+
+**Observability**:
+- Metrics: `scraper_requests_total{source=firecrawl|ogs|fallback}`, `scraper_latency_seconds{p95}`, `generic_title_rate`
+- Alerting: Success rate <85%, p95 latency >8s, circuit breaker trips >3/hour
+
+**Rollout**:
+1. Shadow mode (2 weeks): Parallel calls, compare quality
+2. Primary mode: Firecrawl primary, ogs fallback
+3. Optimize: Tune timeouts, concurrency
 
 ---
 

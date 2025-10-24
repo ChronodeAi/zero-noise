@@ -73,6 +73,18 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error('URL scrape API error:', error)
+
+    // Handle SSRF validation errors with 400 status
+    if (error instanceof Error && error.message.includes('URL validation failed')) {
+      return NextResponse.json(
+        {
+          error: 'Invalid URL',
+          message: error.message,
+        },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
       {
         error: 'Failed to scrape URL',

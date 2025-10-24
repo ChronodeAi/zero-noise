@@ -1,0 +1,40 @@
+# Prometheus Configuration for Zero Noise Scraper
+#
+# Usage: docker run -p 9090:9090 -v $(pwd)/prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
+
+global:
+  scrape_interval: 15s      # Scrape targets every 15 seconds
+  evaluation_interval: 15s  # Evaluate rules every 15 seconds
+
+  # Attach these labels to any time series or alerts when communicating with
+  # external systems (federation, remote storage, Alertmanager).
+  external_labels:
+    monitor: 'zero-noise-scraper'
+
+# Scrape configuration
+scrape_configs:
+  # Zero Noise Scraper Metrics
+  - job_name: 'zero-noise-scraper'
+    metrics_path: '/api/metrics'
+    scheme: https
+
+    static_configs:
+      - targets: ['your-app.vercel.app']  # Replace with actual domain
+        labels:
+          environment: 'production'
+          app: 'zero-noise'
+
+  # For local testing (development)
+  - job_name: 'zero-noise-local'
+    metrics_path: '/api/metrics'
+    scheme: http
+
+    static_configs:
+      - targets: ['localhost:3000']
+        labels:
+          environment: 'development'
+          app: 'zero-noise'
+
+# Alerting rules (optional)
+rule_files:
+  # - 'alerts.yml'

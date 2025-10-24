@@ -1,0 +1,104 @@
+# Grafana Alert Rules for Zero Noise Scraper
+#
+# These alert rules monitor critical metrics and trigger notifications
+# when thresholds are exceeded
+
+groups:
+  - name: zero-noise-scraper
+    interval: 30s
+    rules:
+      # Alert when success rate drops below 90%
+      - alert: LowSuccessRate
+        expr: |
+          sum(rate(scraper_requests_total{status="success"}[5m])) / sum(rate(scraper_requests_total[5m])) < 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: scraper
+        annotations:
+          summary: "Scraper success rate below 90%"
+          description: "Success rate is {{ $value | humanizePercentage }} (threshold: 90%)"
+
+      # Alert when p95 latency exceeds 5 seconds
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95, rate(scraper_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: scraper
+        annotations:
+          summary: "p95 latency exceeds 5 seconds"
+          description: "p95 latency is {{ $value | humanizeDuration }} for source {{ $labels.source }}"
+
+      # Alert when circuit breaker is open for more than 5 minutes
+      - alert: CircuitBreakerOpen
+        expr: |
+          firecrawl_circuit_breaker_state == 1
+        for: 5m
+        labels:
+          severity: critical
+          component: firecrawl
+        annotations:
+          summary: "Firecrawl circuit breaker is OPEN"
+          description: "Circuit breaker has been open for more than 5 minutes. Firecrawl is currently disabled."
+
+      # Alert when failure count is high
+      - alert: HighFailureCount
+        expr: |
+          firecrawl_failures_total >= 3
+        for: 2m
+        labels:
+          severity: warning
+          component: firecrawl
+        annotations:
+          summary: "Firecrawl failure count is high"
+          description: "Current failure count: {{ $value }} (threshold: 3). Circuit breaker may open soon."
+
+      # Alert when generic title rate is high (indicates poor scraping quality)
+      - alert: HighGenericTitleRate
+        expr: |
+          sum(rate(scraper_generic_titles_total[5m])) by (source) / sum(rate(scraper_requests_total{status="success"}[5m])) by (source) > 0.3
+        for: 10m
+        labels:
+          severity: info
+          component: scraper
+        annotations:
+          summary: "High generic title rate detected"
+          description: "{{ $labels.source }} has {{ $value | humanizePercentage }} generic titles (threshold: 30%)"
+
+      # Alert when robots.txt disallow rate is high
+      - alert: HighRobotsTxtDisallowRate
+        expr: |
+          sum(rate(robots_txt_checks_total{result="disallowed"}[5m])) / sum(rate(robots_txt_checks_total[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: info
+          component: scraper
+        annotations:
+          summary: "High robots.txt disallow rate"
+          description: "{{ $value | humanizePercentage }} of requests are being blocked by robots.txt"
+
+      # Alert when retry rate is very high (indicates poor service health)
+      - alert: HighRetryRate
+        expr: |
+          sum(rate(retry_attempts_total[5m])) / sum(rate(scraper_requests_total[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: scraper
+        annotations:
+          summary: "High retry rate detected"
+          description: "Average {{ $value }} retries per request (threshold: 2)"
+
+      # Alert when no requests in the last 10 minutes (potential outage)
+      - alert: NoScraperActivity
+        expr: |
+          rate(scraper_requests_total[5m]) == 0
+        for: 10m
+        labels:
+          severity: critical
+          component: scraper
+        annotations:
+          summary: "No scraper activity detected"
+          description: "No scraping requests have been made in the last 10 minutes. Possible outage or deployment issue."

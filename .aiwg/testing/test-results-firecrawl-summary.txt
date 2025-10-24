@@ -1,0 +1,32 @@
+Firecrawl PoC Spike Results
+Generated: 2025-10-22T18:14:26.304Z
+
+SUMMARY STATISTICS
+==================
+Total URLs: 10
+
+Generic Titles:
+  OGS: 2 (20.0%)
+  Firecrawl: 0 (0.0%)
+  Reduction: 100.0%
+
+Success Rates:
+  OGS: 100.0%
+  Firecrawl: 0.0%
+
+Latency (p95):
+  OGS: 1746ms
+  Firecrawl: 0ms
+
+Winners:
+  Firecrawl: 0
+  OGS: 10
+  Ties: 0
+
+ACCEPTANCE CRITERIA (ADR-006)
+==============================
+✅ Generic title reduction ≥25%: 100.0%
+❌ Success rate ≥90%: 0.0%
+✅ P95 latency ≤5s: 0ms
+
+Result: SOME CRITERIA NOT MET ⚠️

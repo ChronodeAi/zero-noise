@@ -191,6 +191,7 @@ export async function POST(request: NextRequest) {
                 siteName: meta.siteName,
                 author: meta.author,
                 linkType: meta.linkType,
+                structuredData: meta.structuredData || null,
                 uploadedBy: userId,
               })),
             },

@@ -1,0 +1,11 @@
+URL,Category,Expected Title,OGS Title,OGS Site Name,OGS Success,OGS Latency (ms),OGS Generic?,Firecrawl Title,Firecrawl Site Name,Firecrawl Success,Firecrawl Latency (ms),Firecrawl Generic?,Winner,Notes
+"https://arelion.com",SPA,"Arelion","Home","Arelion",true,1746,true,"","",false,2,true,ogs,"Firecrawl error: fetch failed"
+"https://react.dev",SPA,"React","React","",true,385,false,"","",false,3,true,ogs,"Firecrawl error: fetch failed"
+"https://vuejs.org",SPA,"Vue.js","Vue.js","",true,309,false,"","",false,1,true,ogs,"Firecrawl error: fetch failed"
+"https://www.theverge.com",News,"The Verge","The Verge","The Verge",true,801,false,"","",false,4,true,ogs,"Firecrawl error: fetch failed"
+"https://techcrunch.com",News,"TechCrunch","TechCrunch | Startup and Technology News","TechCrunch",true,373,false,"","",false,2,true,ogs,"Firecrawl error: fetch failed"
+"https://docs.github.com",Docs,"GitHub Docs","GitHub.com Help Documentation","GitHub Docs",true,471,false,"","",false,2,true,ogs,"Firecrawl error: fetch failed"
+"https://nextjs.org/docs",Docs,"Next.js Documentation","Next.js Docs | Next.js","",true,456,false,"","",false,1,true,ogs,"Firecrawl error: fetch failed"
+"https://twitter.com/vercel",Social,"Vercel (@vercel)","","X (formerly Twitter)",true,659,true,"","",false,7,true,ogs,"Firecrawl error: fetch failed"
+"https://github.com/firecrawl/firecrawl",Code,"firecrawl/firecrawl","GitHub - firecrawl/firecrawl: 🔥 The Web Data API for AI - Turn entire websites into LLM-ready markdown or structured data","GitHub",true,1017,false,"","",false,10,true,ogs,"Firecrawl error: fetch failed"
+"https://simonwillison.net",Blog,"Simon Willison","Simon Willison’s Weblog","Simon Willison’s Weblog",true,614,false,"","",false,3,true,ogs,"Firecrawl error: fetch failed"

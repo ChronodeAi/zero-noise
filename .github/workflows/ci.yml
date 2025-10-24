@@ -28,13 +28,21 @@ jobs:
         run: npm run lint
 
       - name: Run type check
-        run: npm run typecheck || echo "Type check not configured yet"
+        run: npx tsc --noEmit
 
       - name: Run tests
-        run: npm run test || echo "Tests not configured yet"
+        run: npm run test:run
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
 
       - name: Build application
         run: npm run build
+        env:
+          # Provide minimal env vars needed for build
+          DATABASE_URL: file:./test.db
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: test-secret-for-ci-only-do-not-use-in-production
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
